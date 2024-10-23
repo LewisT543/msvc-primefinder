@@ -35,11 +35,7 @@ public class GlobalExceptionHandler {
         } else {
             errorMessage = "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'. Please provide a valid limit less than or equal to: " + MAX_LONG_VALUE;
         }
-        if (ex.getCause() != null) {
-            logger.error("Method argument mismatch: {}, caused by: {}", ex.getMessage(), ex.getCause().getMessage());
-        } else {
-            logger.error("Method argument mismatch: {}", ex.getMessage());
-        }
+        logger.error("Method argument mismatch: {}", ex.getMessage());
         return new ResponseEntity<>(new FindPrimesErrorResponse(errorMessage, HttpStatus.BAD_REQUEST.value()), HttpStatus.BAD_REQUEST);
     }
 
