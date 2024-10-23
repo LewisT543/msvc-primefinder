@@ -1,5 +1,6 @@
 package com.example.msvcprimefinder.controller;
 
+import com.example.msvcprimefinder.model.enums.PrimeAlgorithms;
 import com.example.msvcprimefinder.response.FindPrimesResponse;
 import com.example.msvcprimefinder.service.FindPrimesService;
 import com.example.msvcprimefinder.service.FindPrimesServiceImpl;
@@ -22,8 +23,11 @@ public class FindPrimesController {
     }
 
     @GetMapping("/find-primes")
-    public ResponseEntity<FindPrimesResponse> findPrimes(@RequestParam long limit) {
-        return ResponseEntity.ok(findPrimesService.findPrimes(limit));
+    public ResponseEntity<FindPrimesResponse> findPrimes(
+            @RequestParam long limit,
+            @RequestParam(required = false, defaultValue = "NAIVE") PrimeAlgorithms algo
+    ) {
+        return ResponseEntity.ok(findPrimesService.findPrimes(limit, algo));
     }
 }
 
