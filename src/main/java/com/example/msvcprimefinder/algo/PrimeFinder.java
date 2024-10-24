@@ -2,6 +2,7 @@ package com.example.msvcprimefinder.algo;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.BitSet;
 import java.util.List;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
@@ -38,7 +39,16 @@ public class PrimeFinder {
         for (int i = 2; i <= limit; i++) {
             if (isPrime[i]) primes.add((long) i);
         }
+        return primes;
+    }
 
+    public static List<Long> findPrimesWithSieve_BitSet(long limit) {
+        int intLimit = (int)limit; // if limit > max_int exception has already been thrown
+        BitSet isPrime = bitSetIntSieve(intLimit);
+        List<Long> primes = new ArrayList<>();
+        for (int i = 2; i <= limit; i++) {
+            if (isPrime.get(i)) primes.add((long) i);
+        }
         return primes;
     }
 
@@ -120,6 +130,57 @@ public class PrimeFinder {
         return resultPrimes;
     }
 
+    public static List<Long> findPrimesWithSegmentedSieve_BitSet(long limit) {
+        long segmentSize = (long) Math.sqrt(limit) + 1;
+
+        // Create the boolean array for primes up to sqrt(limit)
+        BitSet isPrime = bitSetIntSieve((int) segmentSize);
+        List<Long> primes = new ArrayList<>();
+
+        // Collect primes from the boolean array
+        for (int i = 2; i <= segmentSize; i++) {
+            if (isPrime.get(i)) primes.add((long) i);
+        }
+
+        // List to hold all primes up to the limit
+        List<Long> resultPrimes = new ArrayList<>(primes);
+
+        long low = segmentSize;
+        long high = 2 * segmentSize;
+
+        // Process each segment and mark non-primes
+        while (low <= limit) {
+            // Adjust the high for final segment as to not exceed array size
+            if (high > limit) high = limit;
+
+            // Mark all numbers in the current segment as prime
+            BitSet mark = new BitSet((int) (high - low + 1));
+            mark.set(0, (int) (high - low + 1));
+
+            // Use the primes from the simple sieve to mark multiples in the current segment
+            for (long prime : primes) {
+                long start = Math.max(prime * prime, (low + prime - 1) / prime * prime);
+
+                for (long j = start; j <= high; j += prime) {
+                    mark.clear((int) (j - low));
+                }
+            }
+
+            // Collect all primes from the current segment
+            for (int i = 0; i < mark.size(); i++) {
+                if (mark.get(i)) {
+                    resultPrimes.add(low + i);
+                }
+            }
+
+            // Slide up bv segmentSize to next segment
+            low += segmentSize;
+            high += segmentSize;
+        }
+
+        return resultPrimes;
+    }
+
     public static List<Long> findPrimesWithSegmentedSieve_StreamsAPI(long limit) {
         long segmentSize = (long) Math.sqrt(limit) + 1;
 
@@ -179,6 +240,20 @@ public class PrimeFinder {
                 // Setting all multiples of isPrime[i] to false
                 for (int multiple = i * i; multiple <= limit; multiple += i) {
                     isPrime[multiple] = false;
+                }
+            }
+        }
+        return isPrime;
+    }
+
+    // With a BitSet using 1/8th of the memory (bit = 1bit, boolean = 1byte = 8bits)
+    private static BitSet bitSetIntSieve(int limit) {
+        BitSet isPrime = new BitSet(limit + 1);
+        isPrime.set(2, limit + 1); // flip all bits
+        for (int i = 2; i * i <= limit; i++) {
+            if (isPrime.get(i)) {
+                for (int multiple = i * i; multiple <= limit; multiple += i) {
+                    isPrime.clear(multiple);
                 }
             }
         }

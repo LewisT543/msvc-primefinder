@@ -18,8 +18,10 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         Supplier<List<Long>> primeCalculationFn = switch(selectedAlgo) {
             case NAIVE:                     yield () -> PrimeFinder.findPrimesNaive(limit);
             case SIEVE:                     yield () -> PrimeFinder.findPrimesWithSieve(limit);
+            case SIEVE_BITSET:              yield () -> PrimeFinder.findPrimesWithSieve_BitSet(limit);
             case SIEVE_STREAMS:             yield () -> PrimeFinder.findPrimesWithSieve_StreamsAPI(limit);
             case SEGMENTED_SIEVE:           yield () -> PrimeFinder.findPrimesWithSegmentedSieve(limit);
+            case SEGMENTED_SIEVE_BITSET:    yield () -> PrimeFinder.findPrimesWithSegmentedSieve_BitSet(limit);
             case SEGMENTED_SIEVE_STREAMS:   yield () -> PrimeFinder.findPrimesWithSegmentedSieve_StreamsAPI(limit);
         };
 
