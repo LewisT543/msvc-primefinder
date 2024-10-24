@@ -12,10 +12,12 @@ public class PrimeTimingUtil {
     private static final Logger logger = LoggerFactory.getLogger(FindPrimesServiceImpl.class);
 
     public static FindPrimesResponse measureExecutionTime(Supplier<List<Long>> fn, String fnName) {
-        long startTime = System.nanoTime();
+        long startTimeMs = System.currentTimeMillis();
+        long startTimeNs = System.nanoTime();
         List<Long> result = fn.get();
-        long duration = System.nanoTime() - startTime;
-        logger.info("Execution Time for {}: {} ns", fnName, duration);
-        return new FindPrimesResponse(result, duration);
+        long durationNs = System.nanoTime() - startTimeNs;
+        long durationMs = System.currentTimeMillis() - startTimeMs;
+        logger.info("Execution Time for {}: {} ms", fnName, durationMs);
+        return new FindPrimesResponse(result, result.size(), durationMs, durationNs, fnName);
     }
 }

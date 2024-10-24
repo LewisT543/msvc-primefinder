@@ -16,10 +16,11 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         throwInputErrors(limit, selectedAlgo);
 
         Supplier<List<Long>> primeCalculationFn = switch(selectedAlgo) {
-            case SIEVE:             yield () -> PrimeFinder.findPrimesWithSieve(limit);
-            case SIEVE_STREAMS:     yield () -> PrimeFinder.findPrimesWithSieve_StreamsAPI(limit);
-            case SEGMENTED_SIEVE:   yield () -> PrimeFinder.findPrimesWithSegmentedSieve(limit);
-            case NAIVE:             yield () -> PrimeFinder.findPrimesNaive(limit);
+            case NAIVE:                     yield () -> PrimeFinder.findPrimesNaive(limit);
+            case SIEVE:                     yield () -> PrimeFinder.findPrimesWithSieve(limit);
+            case SIEVE_STREAMS:             yield () -> PrimeFinder.findPrimesWithSieve_StreamsAPI(limit);
+            case SEGMENTED_SIEVE:           yield () -> PrimeFinder.findPrimesWithSegmentedSieve(limit);
+            case SEGMENTED_SIEVE_STREAMS:   yield () -> PrimeFinder.findPrimesWithSegmentedSieve_StreamsAPI(limit);
         };
 
         return PrimeTimingUtil.measureExecutionTime(primeCalculationFn, selectedAlgo.name());
