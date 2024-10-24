@@ -1,6 +1,6 @@
 package com.example.msvcprimefinder.model.enums;
 
-public enum PrimeAlgorithms {
+public enum PrimeAlgorithmNames {
     NAIVE,
     SIEVE,
     SIEVE_BITSET,
