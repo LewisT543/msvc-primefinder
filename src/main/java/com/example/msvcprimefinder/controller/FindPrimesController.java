@@ -25,9 +25,11 @@ public class FindPrimesController {
     @GetMapping("/find-primes")
     public ResponseEntity<FindPrimesResponse> findPrimes(
             @RequestParam long limit,
-            @RequestParam(required = false, defaultValue = "NAIVE") PrimeAlgorithmNames algo
+            @RequestParam(required = false, defaultValue = "NAIVE") PrimeAlgorithmNames algo,
+            @RequestParam(required = false, defaultValue = "true") boolean useCache,
+            @RequestParam(required = false, defaultValue = "false") boolean buildCache
     ) {
-        return ResponseEntity.ok(findPrimesService.findPrimes(limit, algo));
+        return ResponseEntity.ok(findPrimesService.findPrimes(limit, algo, useCache, buildCache));
     }
 }
 

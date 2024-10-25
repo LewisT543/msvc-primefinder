@@ -7,10 +7,13 @@ import com.example.msvcprimefinder.repository.PrimeRepository;
 import com.example.msvcprimefinder.response.FindPrimesResponse;
 import com.example.msvcprimefinder.util.PrimesTimer;
 import com.example.msvcprimefinder.util.type.PrimesTimerResult;
+import jakarta.persistence.EntityManager;
+import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -28,9 +31,11 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             PrimeAlgorithmNames.SEGMENTED_SIEVE_STREAMS,
             PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT
     );
-    private static final String CACHE_HIT_MESSAGE = "**CACHE_HIT**";
+    private static final String CACHE_HIT_MESSAGE = "CACHE_HIT";
     private static final String CACHE_SAVE_MESSAGE = "SAVE_TO_CACHE";
     private final PrimeRepository primeRepository;
+
+    private long cachedPrimesLimit = 0;
 
     private static final List<Long> DUMMY_RESPONSE = List.of(1L, 2L, 3L);
 
@@ -38,40 +43,60 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     public FindPrimesServiceImpl(PrimeRepository primeRepository) {
         this.primeRepository = primeRepository;
     }
-    
-    public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm) {
-        throwInputErrors(limit, selectedAlgorithm);
 
-        // Check cache
-        PrimesTimerResult<Prime> maxPrimeResult = PrimesTimer.measureExecutionTime(primeRepository::findMaxPrime);
-        if (limit <= maxPrimeResult.primes().getValue()) {
-            PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() ->
-                    primeRepository.findByValueLessThanEqual(limit).stream().map(Prime::getValue).toList()
-            );
-            logger.info("Execution Time for {}: {} ms", CACHE_HIT_MESSAGE, result.durationMs());
-            return new FindPrimesResponse(
-                    DUMMY_RESPONSE,
-                    result.primes().size(),
-                    result.durationMs() + maxPrimeResult.durationMs(),
-                    result.durationNs() + maxPrimeResult.durationNs(),
-                    CACHE_HIT_MESSAGE
-            );
+    @Transactional
+    public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache, boolean buildCache) {
+        throwInputErrors(limit, selectedAlgorithm);
+        long saveToCacheDurationMs = 0;
+        long saveToCacheDurationNs = 0;
+
+        if (useCache) {
+            // Check against cached limit
+            logger.warn("Cached Primes Limit: {}", cachedPrimesLimit);
+            if (limit <= cachedPrimesLimit) {
+                return handleCacheHit(limit, buildCache);
+            } else {
+                cachedPrimesLimit = limit;
+            }
         }
 
         // Generate primes
         PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(getPrimesFn(limit, selectedAlgorithm));
         logger.info("Execution Time for {}: {} ms", selectedAlgorithm.name(), result.durationMs());
 
-        // Save primes
-        PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> batchSavePrimes(result.primes()));
-        logger.info("Execution Time for {}: {} ms", CACHE_SAVE_MESSAGE, saveToCacheResult.durationMs());
+        if (buildCache) {
+            // Drop table + save primes
+            primeRepository.dropTable();
+            PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> batchSavePrimes(result.primes()));
+            saveToCacheDurationMs = saveToCacheResult.durationMs();
+            saveToCacheDurationNs = saveToCacheResult.durationNs();
+            logger.info("Execution Time for {}: {} ms", CACHE_SAVE_MESSAGE, saveToCacheResult.durationMs());
+        }
 
         return new FindPrimesResponse(
                 DUMMY_RESPONSE,
                 result.primes().size(),
-                result.durationMs() + saveToCacheResult.durationMs(),
-                result.durationNs() + saveToCacheResult.durationNs(),
-                selectedAlgorithm.name()
+                result.durationMs() + saveToCacheDurationMs,
+                result.durationNs() + saveToCacheDurationNs,
+                selectedAlgorithm.name(),
+                buildCache,
+                useCache
+        );
+    }
+
+    private FindPrimesResponse handleCacheHit(long limit, boolean buildCache) {
+        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() ->
+                primeRepository.findByValueLessThanEqual(limit).stream().map(Prime::getValue).toList()
+        );
+        logger.info("Execution Time for {}: {} ms", CACHE_HIT_MESSAGE, result.durationMs());
+        return new FindPrimesResponse(
+                DUMMY_RESPONSE,
+                result.primes().size(),
+                result.durationMs(),
+                result.durationNs(),
+                CACHE_HIT_MESSAGE,
+                buildCache,
+                true
         );
     }
 
@@ -88,7 +113,8 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         };
     }
 
-    private Integer batchSavePrimes(List<Long> primes) {
+    @Transactional
+    public Integer batchSavePrimes(List<Long> primes) {
         int batchSize = primes.size() > 100_000 ? 10_000 : 1000;
         int upperBound = (primes.size() + batchSize - 1) / batchSize;
 
@@ -111,7 +137,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         }
         if (limit >= Integer.MAX_VALUE && !VALID_LARGE_LIMIT_ALGORITHMS.contains(selectedAlgorithm)) {
             logger.warn("[findPrimes]: limit < MAX_INT without Seg-Sieve algorithm");
-            throw new FindPrimesArgException("Limit is greater than MAX_INT, please use the Segmented-Sieve algorithm");
+            throw new FindPrimesArgException("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant");
         }
     }
 }
