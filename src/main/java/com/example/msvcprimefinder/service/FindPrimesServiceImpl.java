@@ -46,7 +46,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
 
     @Transactional
     public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache, boolean buildCache) {
-        throwInputErrors(limit, selectedAlgorithm);
+        throwInputErrors(limit, selectedAlgorithm, buildCache);
         long saveToCacheDurationMs = 0;
         long saveToCacheDurationNs = 0;
 
@@ -55,8 +55,6 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             logger.warn("Cached Primes Limit: {}", cachedPrimesLimit);
             if (limit <= cachedPrimesLimit) {
                 return handleCacheHit(limit, buildCache);
-            } else {
-                cachedPrimesLimit = limit;
             }
         }
 
@@ -70,6 +68,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> batchSavePrimes(result.primes()));
             saveToCacheDurationMs = saveToCacheResult.durationMs();
             saveToCacheDurationNs = saveToCacheResult.durationNs();
+            cachedPrimesLimit = limit;
             logger.info("Execution Time for {}: {} ms", CACHE_SAVE_MESSAGE, saveToCacheResult.durationMs());
         }
 
@@ -85,9 +84,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     }
 
     private FindPrimesResponse handleCacheHit(long limit, boolean buildCache) {
-        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() ->
-                primeRepository.findByValueLessThanEqual(limit).stream().map(Prime::getValue).toList()
-        );
+        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() -> primeRepository.findByValueLessThanEqual(limit));
         logger.info("Execution Time for {}: {} ms", CACHE_HIT_MESSAGE, result.durationMs());
         return new FindPrimesResponse(
                 DUMMY_RESPONSE,
@@ -139,7 +136,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             logger.warn("[findPrimes]: limit > MAX_INT without Seg-Sieve algorithm");
             throw new FindPrimesArgException("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant");
         }
-        if (limit > 10_000_000) {
+        if (buildCache && limit > 10_000_000) {
             logger.warn("[findPrimes]: limit > 10_000_000 with buildCache enabled");
             throw new FindPrimesArgException("Limit too large for caching! Please disable caching (&buildCache=false) or use a smaller limit");
         }
