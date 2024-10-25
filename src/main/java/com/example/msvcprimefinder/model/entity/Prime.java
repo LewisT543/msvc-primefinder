@@ -1,9 +1,6 @@
-package com.example.msvcprimefinder.model.Prime;
+package com.example.msvcprimefinder.model.entity;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
+import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 
@@ -14,11 +11,14 @@ import java.util.Objects;
 @Setter
 @ToString
 @NoArgsConstructor
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class Prime {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "prime_number", unique = true, nullable = false)
+    @NonNull
     private Long value;
 
     // IntelliJ generated equals + hashcode specifically for JPA compatability
