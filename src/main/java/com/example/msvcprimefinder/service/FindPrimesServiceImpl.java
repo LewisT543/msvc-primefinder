@@ -130,14 +130,18 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         return primes.size();
     }
 
-    private void throwInputErrors(long limit, PrimeAlgorithmNames selectedAlgorithm) {
+    private void throwInputErrors(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean buildCache) {
         if (limit < 2) {
             logger.warn("[findPrimes]: limit < 2");
             throw new FindPrimesArgException("Limit must be greater than or equal to 2");
         }
         if (limit >= Integer.MAX_VALUE && !VALID_LARGE_LIMIT_ALGORITHMS.contains(selectedAlgorithm)) {
-            logger.warn("[findPrimes]: limit < MAX_INT without Seg-Sieve algorithm");
+            logger.warn("[findPrimes]: limit > MAX_INT without Seg-Sieve algorithm");
             throw new FindPrimesArgException("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant");
+        }
+        if (limit > 10_000_000) {
+            logger.warn("[findPrimes]: limit > 10_000_000 with buildCache enabled");
+            throw new FindPrimesArgException("Limit too large for caching! Please disable caching (&buildCache=false) or use a smaller limit");
         }
     }
 }
