@@ -220,7 +220,7 @@ public class PrimeFinder {
                                 .forEach(j -> mark[(int) (j - low)] = false);
                     });
 
-                    // Collect primes from this segment and add them to result
+                    // Collect primes from this segment and add them to primes
                     IntStream.range(0, mark.length)
                             .filter(i -> mark[i])
                             .mapToLong(i -> low + i)
@@ -303,7 +303,6 @@ public class PrimeFinder {
 
         return resultPrimes;
     }
-
 
     private static long getDynamicSegmentSize(long limit) {
         int availableProcessors = Runtime.getRuntime().availableProcessors();

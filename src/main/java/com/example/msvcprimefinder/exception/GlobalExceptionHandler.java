@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FindPrimesArgException.class)
     public ResponseEntity<FindPrimesErrorResponse> handleFindPrimesArgException(FindPrimesArgException ex) {
         FindPrimesErrorResponse errorResponse = new FindPrimesErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
-        logger.error("Primes Arg Exception: ");
+        logger.warn("Primes Arg Exception: ");
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 
@@ -45,7 +45,7 @@ public class GlobalExceptionHandler {
         } else {
             errorMessage = "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'. Please provide a valid limit less than or equal to: " + MAX_LONG_VALUE;
         }
-        logger.error("Method argument mismatch: {}", ex.getMessage());
+        logger.warn("Method argument mismatch: {}", ex.getMessage());
         return new ResponseEntity<>(new FindPrimesErrorResponse(errorMessage, HttpStatus.BAD_REQUEST.value()), HttpStatus.BAD_REQUEST);
     }
 
