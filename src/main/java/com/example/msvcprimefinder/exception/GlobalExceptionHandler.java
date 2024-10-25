@@ -18,6 +18,7 @@ public class GlobalExceptionHandler {
     private static final String GENERAL_EXCEPTION_ERROR_MESSAGE = "An unexpected Error has occurred";
     private static final String MAX_LONG_VALUE = "9223372036854775807 (max long value)";
     private static final String CONCURRENCY_ERROR = "Failed to compute prime numbers due to a processing error";
+    private static final String OUT_OF_MEMORY_ERROR = "Out of memory. Please try a smaller limit.";
 
     @ExceptionHandler(FindPrimesArgException.class)
     public ResponseEntity<FindPrimesErrorResponse> handleFindPrimesArgException(FindPrimesArgException ex) {
@@ -52,7 +53,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<FindPrimesErrorResponse> handleAllErrors(Throwable ex) {
         if (ex instanceof OutOfMemoryError) {
             return new ResponseEntity<>(new FindPrimesErrorResponse(
-                    "Out of memory. Please try a smaller limit.",
+                    OUT_OF_MEMORY_ERROR,
                     HttpStatus.INTERNAL_SERVER_ERROR.value()
             ), HttpStatus.INTERNAL_SERVER_ERROR);
         }
