@@ -1,13 +1,22 @@
 package com.example.msvcprimefinder.algo;
 
+import com.example.msvcprimefinder.exception.ConcurrentSieveException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 public class PrimeFinder {
+    private static final Logger logger = LoggerFactory.getLogger(PrimeFinder.class);
     /**
      * Naive method to find all prime numbers up to the given limit.
      *
@@ -221,6 +230,94 @@ public class PrimeFinder {
         return resultPrimes;
     }
 
+    public static List<Long> findPrimesWithSegmentedSieve_Concurrent(long limit) {
+        long segmentSize = getDynamicSegmentSize(limit);
+
+        // Create the boolean array for primes up to sqrt(limit)
+        boolean[] isPrime = simpleIntSieve((int) segmentSize);
+        List<Long> primes = new ArrayList<>();
+
+        // Collect primes from the boolean array
+        for (int i = 2; i <= segmentSize; i++) {
+            if (isPrime[i]) primes.add((long) i);
+        }
+
+        // List to hold all primes up to the limit
+        List<Long> resultPrimes = new ArrayList<>(primes);
+        // Get processors and make a thread pool (try w resources)
+        logger.info("[Concurrent Sieve] Available processors: " + Runtime.getRuntime().availableProcessors());
+        try (ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())) {
+
+            long low = segmentSize;
+            long high;
+
+            List<Future<Void>> futures = new ArrayList<>();
+
+            // Process each segment and mark non-primes
+            while (low <= limit) {
+                // Adjust the high for final segment as to not exceed array size
+                high = Math.min(low + segmentSize - 1, limit);
+
+                // Mark all numbers in the current segment as prime
+                boolean[] mark = new boolean[(int) (high - low + 1)];
+                Arrays.fill(mark, true);
+
+                // Immutability for thread safe concurrency
+                final long segmentLow = low;
+                final long segmentHigh = high;
+
+                // Build threads and add them to futures
+                futures.add(executor.submit(() -> {
+                    // Use the primes from the simple sieve to mark multiples in the current segment
+                    for (long prime : primes) {
+                        long start = Math.max(prime * prime, (segmentLow + prime - 1) / prime * prime);
+
+                        for (long j = start; j <= segmentHigh; j += prime) {
+                            mark[(int) (j - segmentLow)] = false;
+                        }
+                    }
+
+                    // Collect all primes from the current segment
+                    synchronized (resultPrimes) {
+                        for (int i = 0; i < mark.length; i++) {
+                            if (mark[i]) resultPrimes.add(segmentLow + i);
+                        }
+                    }
+                    return null;
+                }));
+
+                // Slide up bv segmentSize to next segment
+                low += segmentSize;
+            }
+
+            logger.info("[Concurrent Sieve] Configured active threads: " + Thread.activeCount());
+
+            for (Future<Void> future : futures) {
+                try{
+                    future.get();
+                } catch (ExecutionException | InterruptedException e) {
+                    throw new ConcurrentSieveException(e.getMessage(), e.getCause());
+                }
+            }
+        }
+
+        return resultPrimes;
+    }
+
+
+    private static long getDynamicSegmentSize(long limit) {
+        int availableProcessors = Runtime.getRuntime().availableProcessors();
+        long freeMemory = Runtime.getRuntime().freeMemory();
+        int scalingFactor = switch((int) Math.log10(limit)) {
+            case 0, 1, 2, 3, 4, 5, 6, 7     -> 1;   // up to 10^7 (10_000_000)        10M
+            case 8, 9                       -> 2;   // up to 10^9 (1_000_000_000)     1B
+            default                         -> 4;   // beyond 10^10 (10_000_000_000)  10B+
+        };
+        logger.info("[Concurrent Sieve]:[Dynamic Segment Size] SegmentSize scaling factor: " + scalingFactor);
+        long maxMemPerThread = freeMemory / availableProcessors / scalingFactor;
+        return Math.min(maxMemPerThread, (long) Math.sqrt(limit));
+    }
+
     private static boolean isPrimeNaive(long num) {
         if (num < 2) return false;
         // Only check up to sqrt(num) for 'efficiency' (if such a thing exists for this impl)
@@ -253,6 +350,7 @@ public class PrimeFinder {
         for (int i = 2; i * i <= limit; i++) {
             if (isPrime.get(i)) {
                 for (int multiple = i * i; multiple <= limit; multiple += i) {
+                    // clear multiples of isPrime[i]
                     isPrime.clear(multiple);
                 }
             }
