@@ -154,12 +154,12 @@ public class PrimeFinder {
         List<Long> resultPrimes = new ArrayList<>(primes);
 
         long low = segmentSize;
-        long high = 2 * segmentSize;
+        long high;
 
         // Process each segment and mark non-primes
         while (low <= limit) {
             // Adjust the high for final segment as to not exceed array size
-            if (high > limit) high = limit;
+            high = Math.min(low + segmentSize - 1, limit);
 
             // Mark all numbers in the current segment as prime
             BitSet mark = new BitSet((int) (high - low + 1));
@@ -181,9 +181,8 @@ public class PrimeFinder {
                 }
             }
 
-            // Slide up bv segmentSize to next segment
+            // Slide low up bv segmentSize to next segment
             low += segmentSize;
-            high += segmentSize;
         }
 
         return resultPrimes;
