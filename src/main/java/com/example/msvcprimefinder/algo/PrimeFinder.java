@@ -308,7 +308,7 @@ public class PrimeFinder {
         int scalingFactor = switch((int) Math.log10(limit)) {
             case 0, 1, 2, 3, 4, 5, 6, 7     -> 1;   // up to 10^7 (10_000_000)        10M
             case 8, 9                       -> 2;   // up to 10^9 (1_000_000_000)     1B
-            default                         -> 4;   // beyond 10^10 (10_000_000_000)  10B+
+            default                         -> 4;   // beyond 10^10 (10_000_000_000)  10B+ (bad idea...)
         };
         logger.info("[Concurrent Sieve]:[Dynamic Segment Size] SegmentSize scaling factor: " + scalingFactor);
         long maxMemPerThread = freeMemory / availableProcessors / scalingFactor;
@@ -316,7 +316,6 @@ public class PrimeFinder {
     }
 
     private static boolean isPrimeNaive(long num) {
-        if (num < 2) return false;
         // Only check up to sqrt(num) for 'efficiency' (if such a thing exists for this impl)
         for (long i = 2; i * i <= num; i++) {
             if (num % i == 0) {

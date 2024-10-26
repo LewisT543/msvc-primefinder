@@ -54,12 +54,31 @@ public class FindPrimesServiceImplTest {
     }
 
     @Test
-    public void testFindPrimes_InvalidLimit() {
+    public void testFindPrimes_LimitLt2() {
         long limit = 1;
         Exception exception = assertThrows(FindPrimesArgException.class, () -> {
             findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, false);
         });
         assertEquals("Limit must be greater than or equal to 2", exception.getMessage());
+    }
+
+    @Test
+    public void testFindPrimes_LimitGtMaxIntAndNonSegAlgo() {
+        int maxInt = Integer.MAX_VALUE;
+        long limit = maxInt + 1;
+        Exception exception = assertThrows(FindPrimesArgException.class, () -> {
+            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, false);
+        });
+        assertEquals("Limit must be greater than or equal to 2", exception.getMessage());
+    }
+
+    @Test
+    public void testFindPrimes_LimitGt10MAndBuildCache() {
+        long limit = 10_000_000 + 1;
+        Exception exception = assertThrows(FindPrimesArgException.class, () -> {
+            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, true);
+        });
+        assertEquals("Limit too large for caching! Please disable caching (&buildCache=false) or use a smaller limit", exception.getMessage());
     }
 
     @Test
@@ -109,5 +128,16 @@ public class FindPrimesServiceImplTest {
             assertFalse(response.buildCache(), "buildCache should be false for " + algorithm.name());
             assertFalse(response.useCache(), "useCache should be false for " + algorithm.name());
         });
+    }
+
+    @Test
+    public void testFindPrimes_ConcurrentSieve_HugeLimit() {
+        long limit = 1_000_000_000;
+        int primesInABillion = 50_847_534;
+        FindPrimesResponse response = findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT, false, false);
+        assertEquals(PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT.name(), response.algorithmName());
+        assertEquals(primesInABillion, response.numberOfPrimes());
+        assertFalse(response.buildCache());
+        assertFalse(response.useCache());
     }
 }
