@@ -93,30 +93,30 @@ public class PrimeFinder {
 
         // Create the boolean array for primes up to sqrt(limit)
         boolean[] isPrime = simpleIntSieve((int) segmentSize);
-        List<Long> primes = new ArrayList<>();
+        List<Long> smallPrimes = new ArrayList<>();
 
         // Collect primes from the boolean array
-        for (int i = 2; i <= segmentSize; i++) {
-            if (isPrime[i]) primes.add((long) i);
+        for (int i = 2; i < segmentSize; i++) {
+            if (isPrime[i]) smallPrimes.add((long) i);
         }
 
         // List to hold all primes up to the limit
-        List<Long> resultPrimes = new ArrayList<>(primes);
+        List<Long> resultPrimes = new ArrayList<>(smallPrimes);
 
         long low = segmentSize;
-        long high = 2 * segmentSize;
+        long high;
 
         // Process each segment and mark non-primes
         while (low <= limit) {
             // Adjust the high for final segment as to not exceed array size
-            if (high > limit) high = limit;
+            high = Math.min(low + segmentSize - 1, limit);
 
             // Mark all numbers in the current segment as prime
             boolean[] mark = new boolean[(int) (high - low + 1)];
             Arrays.fill(mark, true);
 
             // Use the primes from the simple sieve to mark multiples in the current segment
-            for (long prime : primes) {
+            for (long prime : smallPrimes) {
                 long start = Math.max(prime * prime, (low + prime - 1) / prime * prime);
 
                 for (long j = start; j <= high; j += prime) {
@@ -133,7 +133,6 @@ public class PrimeFinder {
 
             // Slide up bv segmentSize to next segment
             low += segmentSize;
-            high += segmentSize;
         }
 
         return resultPrimes;
@@ -147,7 +146,7 @@ public class PrimeFinder {
         List<Long> primes = new ArrayList<>();
 
         // Collect primes from the boolean array
-        for (int i = 2; i <= segmentSize; i++) {
+        for (int i = 2; i < segmentSize; i++) {
             if (isPrime.get(i)) primes.add((long) i);
         }
 
@@ -195,7 +194,7 @@ public class PrimeFinder {
 
         // Generate all primes up to sqrt(limit) using the simple int sieve
         boolean[] isPrime = simpleIntSieve((int) segmentSize);
-        List<Long> primes = IntStream.range(2, isPrime.length)
+        List<Long> primes = IntStream.range(2, isPrime.length - 1)
                 .filter(i -> isPrime[i])
                 .mapToObj(i -> (long) i)
                 .toList();
@@ -331,6 +330,7 @@ public class PrimeFinder {
     private static boolean[] simpleIntSieve(int limit) {
         boolean[] isPrime = new boolean[limit + 1];
         Arrays.fill(isPrime, true);
+        isPrime[0] = isPrime[1] = false;
         for (int i = 2; (long) i * i <= limit; i++) {
             if (isPrime[i]) {
                 // Setting all multiples of isPrime[i] to false

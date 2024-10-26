@@ -82,7 +82,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         }
 
         return new FindPrimesResponse(
-                DUMMY_RESPONSE,
+                result.primes(),
                 result.primes().size(),
                 result.durationMs() + saveToCacheDurationMs,
                 result.durationNs() + saveToCacheDurationNs,
@@ -96,7 +96,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() -> primeRepository.findByValueLessThanEqual(limit));
         logger.info("Execution Time for {}: {} ms", CACHE_HIT_MESSAGE, result.durationMs());
         return new FindPrimesResponse(
-                DUMMY_RESPONSE,
+                result.primes(),
                 result.primes().size(),
                 result.durationMs(),
                 result.durationNs(),
