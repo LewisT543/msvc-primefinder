@@ -29,7 +29,7 @@ public interface FindPrimesAPI {
             @RequestParam long limit,
 
             @Parameter(description = "Algorithm to use for finding primes", required = false, in = ParameterIn.QUERY)
-            @RequestParam(required = false, defaultValue = "NAIVE") PrimeAlgorithmNames algo,
+            @RequestParam(required = false, defaultValue = "SMART") PrimeAlgorithmNames algo,
 
             @Parameter(description = "Use cache if available", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "false") boolean useCache,

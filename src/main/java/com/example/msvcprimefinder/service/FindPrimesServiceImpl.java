@@ -21,6 +21,7 @@ import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
 import static com.example.msvcprimefinder.algo.PrimeFinder.*;
+import static com.example.msvcprimefinder.algo.PrimeFinder.findPrimesWithSegmentedSieve_Concurrent;
 
 @Service
 public class FindPrimesServiceImpl implements FindPrimesService {
@@ -29,10 +30,12 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             PrimeAlgorithmNames.SEGMENTED_SIEVE,
             PrimeAlgorithmNames.SEGMENTED_SIEVE_BITSET,
             PrimeAlgorithmNames.SEGMENTED_SIEVE_STREAMS,
-            PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT
+            PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT,
+            PrimeAlgorithmNames.SMART
     );
     private static final String CACHE_HIT_MESSAGE = "CACHE_HIT";
     private static final String CACHE_SAVE_MESSAGE = "SAVE_TO_CACHE";
+    private static final int SMART_LIMIT_SWITCH = 5_000_000;
     private final PrimeRepository primeRepository;
 
     private long cachedPrimesLimit = 0;
@@ -51,11 +54,17 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         long saveToCacheDurationNs = 0;
 
         if (useCache) {
-            // Check against cached limit
             logger.warn("Cached Primes Limit: {}", cachedPrimesLimit);
             if (limit <= cachedPrimesLimit) {
                 return handleCacheHit(limit, buildCache);
             }
+        }
+
+        // Adjust SMART mode algorithm
+        if (selectedAlgorithm == PrimeAlgorithmNames.SMART) {
+            selectedAlgorithm = limit <= SMART_LIMIT_SWITCH
+                    ? PrimeAlgorithmNames.SIEVE
+                    : PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT;
         }
 
         // Generate primes
@@ -107,6 +116,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             case SEGMENTED_SIEVE_BITSET:        yield () -> findPrimesWithSegmentedSieve_BitSet(limit);
             case SEGMENTED_SIEVE_STREAMS:       yield () -> findPrimesWithSegmentedSieve_StreamsAPI(limit);
             case SEGMENTED_SIEVE_CONCURRENT:    yield () -> findPrimesWithSegmentedSieve_Concurrent(limit);
+            case SMART:                         throw new FindPrimesArgException("Failed to choose algorithm in SMART mode");
         };
     }
 

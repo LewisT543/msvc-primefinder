@@ -25,7 +25,7 @@ public class FindPrimesController implements FindPrimesAPI {
     @GetMapping("/find-primes")
     public ResponseEntity<FindPrimesResponse> findPrimes(
             @RequestParam long limit,
-            @RequestParam(required = false, defaultValue = "NAIVE") PrimeAlgorithmNames algo,
+            @RequestParam(required = false, defaultValue = "SMART") PrimeAlgorithmNames algo,
             @RequestParam(required = false, defaultValue = "false") boolean useCache,
             @RequestParam(required = false, defaultValue = "false") boolean buildCache
     ) {

@@ -9,4 +9,5 @@ public enum PrimeAlgorithmNames {
     SEGMENTED_SIEVE_BITSET,
     SEGMENTED_SIEVE_STREAMS,
     SEGMENTED_SIEVE_CONCURRENT,
+    SMART
 }
