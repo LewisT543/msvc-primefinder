@@ -17,12 +17,7 @@ import java.util.stream.LongStream;
 
 public class PrimeFinder {
     private static final Logger logger = LoggerFactory.getLogger(PrimeFinder.class);
-    /**
-     * Naive method to find all prime numbers up to the given limit.
-     *
-     * @param limit The upper limit up to which prime numbers are found.
-     * @return List of prime numbers up to and including the limit.
-     */
+
     public static List<Long> findPrimesNaive(long limit) {
         List<Long> primes = new ArrayList<>();
 
@@ -35,12 +30,6 @@ public class PrimeFinder {
         return primes;
     }
 
-    /**
-     * Sieve of Eratosthenes method to find all prime numbers up to the given limit.
-     *
-     * @param limit The upper limit up to which prime numbers are found.
-     * @return List of prime numbers up to and including the limit.
-     */
     public static List<Long> findPrimesWithSieve(long limit) {
         int intLimit = (int)limit; // if limit > max_int exception has already been thrown
         boolean[] isPrime = simpleIntSieve(intLimit);
@@ -82,12 +71,6 @@ public class PrimeFinder {
                 .toList();
     }
 
-    /**
-     * Segmented Sieve method to find all prime numbers up to the given limit.
-     *
-     * @param limit The upper limit up to which prime numbers are found.
-     * @return List of prime numbers up to and including the limit.
-     */
     public static List<Long> findPrimesWithSegmentedSieve(long limit) {
         long segmentSize = (long) Math.sqrt(limit) + 1;
 
