@@ -171,3 +171,11 @@ is okay, sometimes it is not! For efficiency, implement algorithms imperatively.
 5. BitSet solutions work well for reducing memory consumption, but come with reasonable overhead due to method calls and casting types.
 It is also much more difficult to remain thread-safe when using bitsets concurrently as they cannot (by default) be used with the
 synchronized keyword without a custom implementation.
+
+### Test Coverage report (Jacoco)
+
+![img.png](coverage_report.png)
+
+| Element                                          | Missed Instructions | Cov. | Missed Branches | Cov. |
+|--------------------------------------------------|---------------------|------|-----------------|------|
+| Total                                            | 57 of 1,734         | 96%  | 11 of 139       | 92%  |
