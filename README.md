@@ -69,7 +69,7 @@ mvn spring-boot:run
 | `SIEVE_BITSET`                          | A bit-set based implementation of the Sieve of Eratosthenes for memory efficiency.                                      |
 | `SIEVE_STREAMS`                         | Uses Java Streams to implement the Sieve of Eratosthenes for a more functional programming approach.                    |
 | `SEGMENTED_SIEVE`                       | A segmented version of the Sieve algorithm that is more memory efficient for larger ranges.                             |
-| `SEGMENTED_SIEVE_BITSET`                | Combines segmented sieve with a bit-set for improved performance and memory usage.                                      |
+| `SEGMENTED_SIEVE_BITSET`                | Combines segmented sieve with a bit-set for reduced memory usage.                                                       |
 | `SEGMENTED_SIEVE_STREAMS`               | A segmented sieve using Java Streams.                                                                                   |
 | `SEGMENTED_SIEVE_CONCURRENT`            | A concurrent implementation of the segmented sieve for faster calculations using multiple threads.                      |
 | `SMART`                                 | Automatically chooses the best algorithm based on the limit provided (SIEVE or SEGMENTED_SIEVE_CONCURRENT).             |
