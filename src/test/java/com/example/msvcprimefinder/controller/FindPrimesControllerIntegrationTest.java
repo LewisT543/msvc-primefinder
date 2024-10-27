@@ -2,6 +2,8 @@ package com.example.msvcprimefinder.controller;
 
 import com.example.msvcprimefinder.model.entity.Prime;
 import com.example.msvcprimefinder.repository.PrimeRepository;
+import com.example.msvcprimefinder.service.FindPrimesService;
+import com.example.msvcprimefinder.service.FindPrimesServiceImpl;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -28,11 +30,14 @@ public class FindPrimesControllerIntegrationTest {
     @Autowired
     private PrimeRepository primeRepository;
 
+    @Autowired
+    private FindPrimesService primesService;
+
     @BeforeEach
     void setup() {
         RestAssured.port = port;
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-        primeRepository.deleteAllPrimes();
+        primesService.deleteAllPrimesSafe();
     }
 
     private final List<Long> primesTo100 = List.of(2L, 3L, 5L, 7L,11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L,

@@ -102,6 +102,18 @@ public class FindPrimesServiceImplTest {
     }
 
     @Test
+    public void testDeleteAllPrimesSafe_EmptyDBDoesNotThrow() {
+        assertDoesNotThrow(() -> findPrimesService.deleteAllPrimesSafe());
+    }
+
+    @Test
+    public void testDeleteAllPrimesSafe_SuccessfulDelete() {
+        FindPrimesResponse response = findPrimesService.findPrimes(100, PrimeAlgorithmNames.SMART, false, true, true);
+        assertDoesNotThrow(() -> findPrimesService.deleteAllPrimesSafe());
+        assertEquals(0, primeRepository.findAll().size());
+    }
+
+    @Test
     public void testFindPrimes_WithAllAlgorithms_SmallLimit() {
         long limit = 100;
         Arrays.stream(PrimeAlgorithmNames.values()).forEach(algorithm -> {

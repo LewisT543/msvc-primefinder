@@ -34,11 +34,11 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     private static final String CACHE_HIT_MESSAGE = "CACHE_HIT";
     private static final String CACHE_SAVE_MESSAGE = "SAVE_TO_CACHE";
     private static final int SMART_LIMIT_SWITCH = 5_000_000;
+    private static final List<Long> EMPTY_PRIMES = List.of();
+
     private final PrimeRepository primeRepository;
 
     private long cachedPrimesLimit = 0;
-
-    private static final List<Long> EMPTY_PRIMES = List.of();
 
     @Autowired
     public FindPrimesServiceImpl(PrimeRepository primeRepository) {
@@ -71,7 +71,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
 
         if (buildCache) {
             // Drop table + save primes
-            primeRepository.deleteAllPrimes();
+            deleteAllPrimesSafe();
             PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> batchSavePrimes(result.primes()));
             saveToCacheDurationMs = saveToCacheResult.durationMs();
             saveToCacheDurationNs = saveToCacheResult.durationNs();
@@ -88,6 +88,18 @@ public class FindPrimesServiceImpl implements FindPrimesService {
                 buildCache,
                 useCache
         );
+    }
+
+    public void deleteAllPrimesSafe() {
+        try {
+            primeRepository.deleteAllPrimes();
+        } catch (Exception e) {
+            if (e.getMessage().contains("no such table: Prime")) {
+                logger.warn("Tried to delete non-existent table: Prime. Do nothing");
+            } else {
+                throw e;
+            }
+        }
     }
 
     private FindPrimesResponse handleCacheHit(long limit, boolean buildCache, boolean withResult) {

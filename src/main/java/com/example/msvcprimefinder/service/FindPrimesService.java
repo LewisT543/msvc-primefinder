@@ -7,4 +7,5 @@ import java.util.concurrent.ExecutionException;
 
 public interface FindPrimesService {
     FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean buildCache, boolean withCache, boolean withResult);
+    void deleteAllPrimesSafe();
 }
