@@ -47,13 +47,10 @@ public class FindPrimesControllerIntegrationTest {
             .queryParam("algorithm", "SIEVE")
         .when()
             .get("/api/find-primes");
-
         List<Long> responsePrimes = response.jsonPath().getList("result", Long.class);
-
         response.then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
-
         assertEquals(primesTo100, responsePrimes);
         assertTrue(primeRepository.findAll().isEmpty(), "Database should remain empty");
     }
@@ -67,24 +64,18 @@ public class FindPrimesControllerIntegrationTest {
             .queryParam("algorithm", "SIEVE")
         .when()
             .get("/api/find-primes");
-
         List<Long> responsePrimes = response.jsonPath().getList("result", Long.class);
-
         response.then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
-
         assertEquals(primesTo100, responsePrimes);
         assertEquals(primesTo100, primeRepository.findAll().stream().map(Prime::getValue).toList(), "Database should contain primes upto and including limit");
-
         Response response2 = given()
             .queryParam("limit", 100)
             .queryParam("useCache", true)
         .when()
             .get("/api/find-primes");
-
         List<Long> responsePrimes2 = response2.jsonPath().getList("result", Long.class);
-
         response2.then()
                 .statusCode(HttpStatus.OK.value())
                 .body("algorithmName", equalTo("CACHE_HIT"));
@@ -101,7 +92,6 @@ public class FindPrimesControllerIntegrationTest {
         .then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
-
         given()
             .queryParam("limit", 10000000)
             .queryParam("algorithm", "SMART")
@@ -121,8 +111,6 @@ public class FindPrimesControllerIntegrationTest {
         .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("message", containsString("Limit must be greater than or equal to 2"));
-
         assertTrue(primeRepository.findAll().isEmpty(), "Database should remain empty after invalid request");
     }
-
 }

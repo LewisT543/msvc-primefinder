@@ -19,8 +19,10 @@ public interface FindPrimesAPI {
             responses = {
                     @ApiResponse(responseCode = "200", description = "Successfully retrieved primes",
                             content = @Content(mediaType = "application/json",
-                                    schema = @Schema(implementation = FindPrimesResponse.class))),
-                    @ApiResponse(responseCode = "400", description = "Invalid input")
+                            schema = @Schema(implementation = FindPrimesResponse.class))
+                    ),
+                    @ApiResponse(responseCode = "400", description = "Invalid input"),
+                    @ApiResponse(responseCode = "500", description = "Server Error")
             }
     )
     @GetMapping("/api/find-primes")
@@ -35,7 +37,10 @@ public interface FindPrimesAPI {
             @RequestParam(required = false, defaultValue = "false") boolean useCache,
 
             @Parameter(description = "Build cache after finding primes (slow)", required = false, in = ParameterIn.QUERY)
-            @RequestParam(required = false, defaultValue = "false") boolean buildCache
+            @RequestParam(required = false, defaultValue = "false") boolean buildCache,
+
+            @Parameter(description = "Return a dummy list of primes instead of the real result", required = false, in = ParameterIn.QUERY)
+            @RequestParam(required = false, defaultValue = "true") boolean withResult
     );
 }
 

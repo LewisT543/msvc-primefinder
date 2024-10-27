@@ -38,7 +38,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
 
     private long cachedPrimesLimit = 0;
 
-    private static final List<Long> DUMMY_RESPONSE = List.of(1L, 2L, 3L);
+    private static final List<Long> EMPTY_PRIMES = List.of();
 
     @Autowired
     public FindPrimesServiceImpl(PrimeRepository primeRepository) {
@@ -46,7 +46,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     }
 
     @Transactional
-    public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache, boolean buildCache) {
+    public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache, boolean buildCache, boolean withResult) {
         throwInputErrors(limit, selectedAlgorithm, buildCache);
         long saveToCacheDurationMs = 0;
         long saveToCacheDurationNs = 0;
@@ -54,7 +54,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         if (useCache) {
             logger.warn("Cached Primes Limit: {}", cachedPrimesLimit);
             if (limit <= cachedPrimesLimit) {
-                return handleCacheHit(limit, buildCache);
+                return handleCacheHit(limit, buildCache, withResult);
             }
         }
 
@@ -80,7 +80,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         }
 
         return new FindPrimesResponse(
-                result.primes(),
+                withResult ? result.primes() : EMPTY_PRIMES,
                 result.primes().size(),
                 result.durationMs() + saveToCacheDurationMs,
                 result.durationNs() + saveToCacheDurationNs,
@@ -90,11 +90,11 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         );
     }
 
-    private FindPrimesResponse handleCacheHit(long limit, boolean buildCache) {
+    private FindPrimesResponse handleCacheHit(long limit, boolean buildCache, boolean withResult) {
         PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() -> primeRepository.findByValueLessThanEqual(limit));
         logger.info("Execution Time for {}: {} ms", CACHE_HIT_MESSAGE, result.durationMs());
         return new FindPrimesResponse(
-                result.primes(),
+                withResult ? result.primes() : EMPTY_PRIMES,
                 result.primes().size(),
                 result.durationMs(),
                 result.durationNs(),

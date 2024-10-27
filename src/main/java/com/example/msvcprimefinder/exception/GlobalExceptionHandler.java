@@ -39,11 +39,10 @@ public class GlobalExceptionHandler {
     public ResponseEntity<FindPrimesErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
         var type = Objects.requireNonNull(ex.getRequiredType(), "Required type should never be null here"); // Silence compiler for isEnum() check
         String errorMessage;
-        if (type.isEnum()) {
-            // An invalid value for PrimeAlgorithms enum argument
-            errorMessage = "Invalid value for '" + ex.getName() + "'. Allowed values are: " + Arrays.toString(type.getEnumConstants());
-        } else {
-            errorMessage = "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'. Please provide a valid limit less than or equal to: " + MAX_LONG_VALUE;
+        switch (ex.getName()) {
+            case "algo" -> errorMessage = "Invalid value for '" + ex.getName() + "'. Allowed values are: " + Arrays.toString(type.getEnumConstants());
+            case "limit" -> errorMessage = "Invalid value '" + ex.getValue() + "' for parameter '" + ex.getName() + "'. Please provide a valid limit less than or equal to: " + MAX_LONG_VALUE;
+            default -> errorMessage = "Invalid value for '" + ex.getName() + "'. Allowed values are: [true, false]";
         }
         logger.warn("Method argument mismatch: {}", ex.getMessage());
         return new ResponseEntity<>(new FindPrimesErrorResponse(errorMessage, HttpStatus.BAD_REQUEST.value()), HttpStatus.BAD_REQUEST);

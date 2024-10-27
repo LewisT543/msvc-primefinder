@@ -6,5 +6,5 @@ import com.example.msvcprimefinder.response.FindPrimesResponse;
 import java.util.concurrent.ExecutionException;
 
 public interface FindPrimesService {
-    FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean buildCache, boolean withCache);
+    FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean buildCache, boolean withCache, boolean withResult);
 }

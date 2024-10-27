@@ -29,36 +29,36 @@ public class PrimeTest {
     @Test
     public void testEquals_SameId() {
         Prime prime1 = new Prime(7L);
-        prime1.setId(1L); // Assign an ID
+        prime1.setId(1L);
         Prime prime2 = new Prime(7L);
-        prime2.setId(1L); // Assign the same ID
+        prime2.setId(1L);
         assertTrue(prime1.equals(prime2), "Should be equal since IDs are the same");
     }
 
     @Test
     public void testEquals_DifferentId() {
         Prime prime1 = new Prime(7L);
-        prime1.setId(1L); // Assign an ID
+        prime1.setId(1L);
         Prime prime2 = new Prime(7L);
-        prime2.setId(2L); // Assign a different ID
+        prime2.setId(2L);
         assertFalse(prime1.equals(prime2), "Should not be equal since IDs are different");
     }
 
     @Test
     public void testHashCode_SameId() {
         Prime prime1 = new Prime(7L);
-        prime1.setId(1L); // Assign an ID
+        prime1.setId(1L);
         Prime prime2 = new Prime(7L);
-        prime2.setId(1L); // Assign the same ID
+        prime2.setId(1L);
         assertEquals(prime1.hashCode(), prime2.hashCode(), "Hash codes should be equal for primes with the same ID");
     }
 
     @Test
     public void testHashCode_DifferentId() {
         Prime prime1 = new Prime(7L);
-        prime1.setId(1L); // Assign an ID
+        prime1.setId(1L);
         Prime prime2 = new Prime(7L);
-        prime2.setId(2L); // Assign a different ID
+        prime2.setId(2L);
         assertEquals(prime1.hashCode(), prime2.hashCode(), "Hash codes should be equal for primes with different IDs but same values");
     }
 
@@ -71,9 +71,9 @@ public class PrimeTest {
     @Test
     public void testHashCode_NullId() {
         Prime prime1 = new Prime(7L);
-        prime1.setId(null); // Set ID to null
+        prime1.setId(null);
         Prime prime2 = new Prime(7L);
-        prime2.setId(null); // Set ID to null
+        prime2.setId(null);
         assertEquals(prime1.hashCode(), prime2.hashCode(), "Hash codes should be equal for primes with null IDs");
     }
 }

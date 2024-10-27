@@ -27,9 +27,10 @@ public class FindPrimesController implements FindPrimesAPI {
             @RequestParam long limit,
             @RequestParam(required = false, defaultValue = "SMART") PrimeAlgorithmNames algo,
             @RequestParam(required = false, defaultValue = "false") boolean useCache,
-            @RequestParam(required = false, defaultValue = "false") boolean buildCache
+            @RequestParam(required = false, defaultValue = "false") boolean buildCache,
+            @RequestParam(required = false, defaultValue = "true") boolean withResult
     ) {
-        return ResponseEntity.ok(findPrimesService.findPrimes(limit, algo, useCache, buildCache));
+        return ResponseEntity.ok(findPrimesService.findPrimes(limit, algo, useCache, buildCache, withResult));
     }
 }
 
