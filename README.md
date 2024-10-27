@@ -2,6 +2,45 @@
 
 This application provides an API to calculate prime numbers up to a specified limit using various algorithms. It allows users to control the calculation method and caching options through specific parameters.
 
+## Technologies Used
+
+- **Java Version**: 20
+- **Framework**: Spring Boot
+- **Database**: SQLite (for caching)
+- **Testing**: JUnit, Mockito, Rest-Assured
+
+## Features
+
+- Find prime numbers up to a specified limit.
+- Support for multiple algorithms for calculating primes.
+- Caching results in a SQLite database for improved performance.
+- Handles invalid input parameters gracefully with custom error responses.
+
+## Setup Instructions
+
+To set up the project locally, follow these steps:
+
+### Prerequisites
+
+- **Java Development Kit (JDK)**: Make sure you have JDK 20 installed. You can download it from the [official Oracle website](https://www.oracle.com/java/technologies/javase/jdk20-archive-downloads.html) or use a package manager.
+
+- **Maven**: Ensure you have Maven installed to manage project dependencies. You can install it from the [official Maven website](https://maven.apache.org/download.cgi).
+
+### Local setup
+
+Follow the instuctions below sequentially to set up the project locally:
+```bash
+git clone https://github.com/LewisT543/msvc-primefinder.git
+
+cd msvc-primefinder
+
+mvn clean install
+
+mvn test
+
+mvn spring-boot:run
+```
+
 ## API Endpoint
 
 ### Find Primes
@@ -59,11 +98,25 @@ GET /find-primes?limit=100000&useCache=true&buildCache=true&algo=SMART
 {
   "result": [2, 3, 5, ...],
   "numberOfPrimes": 9592,
-  "executionTimeMs": 15,
-  "executionTimeNs": 5000000,
+  "executionTimeMs": 519,
+  "executionTimeNs": 519539900,
   "algorithmName": "SIEVE",
-  "buildCache": false,
-  "useCache": false,
-  "timestamp": "2024-10-27T12:00:00"
+  "buildCache": true,
+  "useCache": true,
+  "timestamp": "2024-10-27T13:16:13.8735739"
+}
+```
+
+### Example 3:  Invalid Parameter Handling
+**Request:**
+
+/find-primes?limit=test
+
+**Response:**
+```json
+{
+    "message": "Invalid value 'test' for parameter 'limit'. Please provide a valid limit less than or equal to: 9223372036854775807 (max long value)",
+    "status": 400,
+    "timestamp": "2024-10-27T13:18:01.8392119"
 }
 ```
