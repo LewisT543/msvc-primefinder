@@ -64,12 +64,12 @@ public class FindPrimesServiceImplTest {
 
     @Test
     public void testFindPrimes_LimitGtMaxIntAndNonSegAlgo() {
-        int maxInt = Integer.MAX_VALUE;
+        long maxInt = Integer.MAX_VALUE;
         long limit = maxInt + 1;
         Exception exception = assertThrows(FindPrimesArgException.class, () -> {
             findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, false);
         });
-        assertEquals("Limit must be greater than or equal to 2", exception.getMessage());
+        assertEquals("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant", exception.getMessage());
     }
 
     @Test

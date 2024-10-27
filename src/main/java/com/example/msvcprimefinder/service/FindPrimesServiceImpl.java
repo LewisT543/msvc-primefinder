@@ -7,8 +7,6 @@ import com.example.msvcprimefinder.repository.PrimeRepository;
 import com.example.msvcprimefinder.response.FindPrimesResponse;
 import com.example.msvcprimefinder.util.PrimesTimer;
 import com.example.msvcprimefinder.util.type.PrimesTimerResult;
-import jakarta.persistence.EntityManager;
-import jakarta.persistence.PersistenceContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -73,7 +71,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
 
         if (buildCache) {
             // Drop table + save primes
-            primeRepository.dropTable();
+            primeRepository.deleteAllPrimes();
             PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> batchSavePrimes(result.primes()));
             saveToCacheDurationMs = saveToCacheResult.durationMs();
             saveToCacheDurationNs = saveToCacheResult.durationNs();

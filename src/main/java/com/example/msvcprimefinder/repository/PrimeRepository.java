@@ -17,5 +17,5 @@ public interface PrimeRepository extends JpaRepository<Prime, Long> {
     @Transactional
     @Modifying
     @Query(value = "DELETE FROM Prime")
-    Void dropTable();
+    void deleteAllPrimes();
 }
