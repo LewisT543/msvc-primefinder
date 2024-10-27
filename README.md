@@ -26,9 +26,8 @@ To set up the project locally, follow these steps:
 
 - **Maven**: Ensure you have Maven installed to manage project dependencies. You can install it from the [official Maven website](https://maven.apache.org/download.cgi).
 
-### Local setup
+### Project Setup
 
-Follow the instuctions below sequentially to set up the project locally:
 ```bash
 git clone https://github.com/LewisT543/msvc-primefinder.git
 
