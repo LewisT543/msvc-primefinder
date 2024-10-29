@@ -6,14 +6,16 @@ This application provides an API to calculate prime numbers up to a specified li
 
 - **Java Version**: 20
 - **Framework**: Spring Boot
-- **Database**: SQLite (for caching)
+- ~~**Database**: SQLite (for caching)~~
+- **Redis**: Caching
+- **Docker**: For running Redis / app
 - **Testing**: JUnit, Mockito, Rest-Assured
 
 ## Features
 
 - Find prime numbers up to a specified limit.
 - Support for multiple algorithms for calculating primes.
-- Caching results in a SQLite database for improved performance.
+- Caching results in an in-memory store (Redis) for improved performance.
 - Handles invalid input parameters gracefully with custom error responses.
 
 ## Setup Instructions
@@ -26,6 +28,10 @@ To set up the project locally, follow these steps:
 
 - **Maven**: Ensure you have Maven installed to manage project dependencies. You can install it from the [official Maven website](https://maven.apache.org/download.cgi).
 
+- **WSL(if Windows) + Redis**: Required for a local version of Redis to run tests. [official Redis website](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-windows/).
+
+- **Docker**: Containerization of Redis + App. [official Docker website](https://docs.docker.com/get-started/get-docker/)
+
 ### Project Setup
 
 ```bash
@@ -33,11 +39,11 @@ git clone https://github.com/LewisT543/msvc-primefinder.git
 
 cd msvc-primefinder
 
-mvn clean install
+// get redis running locally (sorry, you are on your own for this bit!)
 
-mvn test
+mvn clean install package
 
-mvn spring-boot:run
+docker-compose up --build
 ```
 
 ## API Endpoint
@@ -51,7 +57,6 @@ mvn spring-boot:run
 | `limit`        | `long` | Yes      | N/A           | The upper limit up to which primes will be calculated.                                                                                                                                                                          |
 | `algo`         | `enum` | No       | `SMART`       | The algorithm to use for calculating primes. Options include: `NAIVE`, `SIEVE`, `SIEVE_BITSET`, `SIEVE_STREAMS`, `SEGMENTED_SIEVE`, `SEGMENTED_SIEVE_BITSET`, `SEGMENTED_SIEVE_STREAMS`, `SEGMENTED_SIEVE_CONCURRENT`, `SMART`. |
 | `useCache`     | `boolean` | No   | `false`       | Indicates whether to use cached prime results.                                                                                                                                                                                  |
-| `buildCache`   | `boolean` | No   | `false`       | Indicates whether to build a cache of the calculated primes for future requests.                                                                                                                                                |
 | `withResult`   | `boolean` | No   | `true`        | Indicates whether to include the result in the response. (Huge responses may crash clients)                                                                                                                                     |
 
 
