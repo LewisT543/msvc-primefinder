@@ -1,6 +1,7 @@
 package com.example.msvcprimefinder.exception;
 
 import com.example.msvcprimefinder.response.FindPrimesErrorResponse;
+import jakarta.validation.ConstraintViolationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -23,7 +24,14 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(FindPrimesArgException.class)
     public ResponseEntity<FindPrimesErrorResponse> handleFindPrimesArgException(FindPrimesArgException ex) {
         FindPrimesErrorResponse errorResponse = new FindPrimesErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
-        logger.warn("Primes Arg Exception: ");
+        logger.warn("Primes Arg Exception: " + ex.getMessage());
+        return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
+    }
+
+    @ExceptionHandler(ConstraintViolationException.class)
+    public ResponseEntity<FindPrimesErrorResponse> handleConstraintViolationException(ConstraintViolationException ex) {
+        FindPrimesErrorResponse errorResponse = new FindPrimesErrorResponse(ex.getMessage(), HttpStatus.BAD_REQUEST.value());
+        logger.warn("Constraint Violation Exception: " + ex.getMessage());
         return new ResponseEntity<>(errorResponse, HttpStatus.BAD_REQUEST);
     }
 

@@ -53,15 +53,6 @@ public class FindPrimesServiceImplTest {
     }
 
     @Test
-    public void testFindPrimes_LimitLt2() {
-        long limit = 1;
-        Exception exception = assertThrows(FindPrimesArgException.class, () -> {
-            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, false, true);
-        });
-        assertEquals("Limit must be greater than or equal to 2", exception.getMessage());
-    }
-
-    @Test
     public void testFindPrimes_LimitGtMaxIntAndNonSegAlgo() {
         long maxInt = Integer.MAX_VALUE;
         long limit = maxInt + 1;

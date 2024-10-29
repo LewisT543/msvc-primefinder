@@ -2,6 +2,7 @@ package com.example.msvcprimefinder.exception;
 
 import com.example.msvcprimefinder.model.enums.PrimeAlgorithmNames;
 import com.example.msvcprimefinder.response.FindPrimesErrorResponse;
+import jakarta.validation.ConstraintViolationException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -47,14 +48,12 @@ public class GlobalExceptionHandlerTest {
     }
 
     @Test
-    public void handleMethodArgumentTypeMismatchException_Limit() {
-        MethodArgumentTypeMismatchException exception = mock(MethodArgumentTypeMismatchException.class);
-        when(exception.getName()).thenReturn("limit");
-        when(exception.getValue()).thenReturn("NaN");
-        when(exception.getRequiredType()).thenReturn((Class) Long.class);
-        ResponseEntity<FindPrimesErrorResponse> response = globalExceptionHandler.handleMethodArgumentTypeMismatch(exception);
+    public void handleConstraintViolationException_Limit() {
+        ConstraintViolationException exception = mock(ConstraintViolationException.class);
+        when(exception.getMessage()).thenReturn("findPrimes.limit: must be greater than or equal to 2");
+        ResponseEntity<FindPrimesErrorResponse> response = globalExceptionHandler.handleConstraintViolationException(exception);
         assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertTrue(response.getBody().message().contains("Invalid value 'NaN' for parameter 'limit'"));
+        assertTrue(response.getBody().message().contains("findPrimes.limit: must be greater than or equal to 2"));
     }
 
     @Test

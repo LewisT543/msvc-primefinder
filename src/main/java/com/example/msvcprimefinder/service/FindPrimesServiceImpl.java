@@ -148,10 +148,6 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     }
 
     private void throwInputErrors(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean buildCache) {
-        if (limit < 2) {
-            logger.warn("[findPrimes]: limit < 2");
-            throw new FindPrimesArgException("Limit must be greater than or equal to 2");
-        }
         if (limit >= Integer.MAX_VALUE && !VALID_LARGE_LIMIT_ALGORITHMS.contains(selectedAlgorithm)) {
             logger.warn("[findPrimes]: limit > MAX_INT without Seg-Sieve algorithm");
             throw new FindPrimesArgException("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant");

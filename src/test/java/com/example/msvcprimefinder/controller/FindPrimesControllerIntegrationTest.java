@@ -115,7 +115,7 @@ public class FindPrimesControllerIntegrationTest {
             .get("/api/find-primes")
         .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
-            .body("message", containsString("Limit must be greater than or equal to 2"));
+            .body("message", containsString("findPrimes.limit: must be greater than or equal to 2"));
         assertTrue(primeRepository.findAll().isEmpty(), "Database should remain empty after invalid request");
     }
 }

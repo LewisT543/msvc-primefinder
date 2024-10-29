@@ -8,10 +8,13 @@ import io.swagger.v3.oas.annotations.enums.ParameterIn;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
+import jakarta.validation.constraints.Min;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+@Validated
 public interface FindPrimesAPI {
     @Operation(
             summary = "Find primes up to and including a specified limit",
@@ -28,7 +31,7 @@ public interface FindPrimesAPI {
     @GetMapping("/api/find-primes")
     ResponseEntity<FindPrimesResponse> findPrimes(
             @Parameter(description = "Upper limit (inclusive) for finding primes", required = true, in = ParameterIn.QUERY)
-            @RequestParam long limit,
+            @RequestParam @Min(2) long limit,
 
             @Parameter(description = "Algorithm to use for finding primes", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "SMART") PrimeAlgorithmNames algo,
