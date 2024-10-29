@@ -1,5 +1,6 @@
 package com.example.msvcprimefinder.service;
 
+import com.example.msvcprimefinder.concurrent.ExecutorServiceProvider;
 import com.example.msvcprimefinder.exception.FindPrimesArgException;
 import com.example.msvcprimefinder.model.entity.Prime;
 import com.example.msvcprimefinder.model.enums.PrimeAlgorithmNames;
@@ -15,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 import java.util.stream.IntStream;
 
@@ -37,12 +39,14 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     private static final List<Long> EMPTY_PRIMES = List.of();
 
     private final PrimeRepository primeRepository;
+    private final ExecutorServiceProvider executorServiceProvider;
 
     private long cachedPrimesLimit = 0;
 
     @Autowired
-    public FindPrimesServiceImpl(PrimeRepository primeRepository) {
+    public FindPrimesServiceImpl(PrimeRepository primeRepository, ExecutorServiceProvider executorServiceProvider) {
         this.primeRepository = primeRepository;
+        this.executorServiceProvider = executorServiceProvider;
     }
 
     @Transactional
@@ -125,7 +129,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             case SEGMENTED_SIEVE:               yield () -> findPrimesWithSegmentedSieve(limit);
             case SEGMENTED_SIEVE_BITSET:        yield () -> findPrimesWithSegmentedSieve_BitSet(limit);
             case SEGMENTED_SIEVE_STREAMS:       yield () -> findPrimesWithSegmentedSieve_StreamsAPI(limit);
-            case SEGMENTED_SIEVE_CONCURRENT:    yield () -> findPrimesWithSegmentedSieve_Concurrent(limit);
+            case SEGMENTED_SIEVE_CONCURRENT:    yield handleConcurrentSieve(limit);
             case SMART:                         throw new FindPrimesArgException("Failed to choose algorithm in SMART mode");
         };
     }
@@ -145,6 +149,11 @@ public class FindPrimesServiceImpl implements FindPrimesService {
                     primeRepository.saveAll(primeEntities);
                 });
         return primes.size();
+    }
+
+    private Supplier<List<Long>> handleConcurrentSieve(long limit) {
+        ExecutorService executor = executorServiceProvider.getExecutor();
+        return () -> findPrimesWithSegmentedSieve_Concurrent(limit, executorServiceProvider.getDynamicSegmentSize(limit), executor);
     }
 
     private void throwInputErrors(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean buildCache) {

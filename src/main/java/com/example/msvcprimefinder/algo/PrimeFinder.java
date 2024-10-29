@@ -211,9 +211,7 @@ public class PrimeFinder {
         return resultPrimes;
     }
 
-    public static List<Long> findPrimesWithSegmentedSieve_Concurrent(long limit) {
-        long segmentSize = getDynamicSegmentSize(limit);
-
+    public static List<Long> findPrimesWithSegmentedSieve_Concurrent(long limit, long segmentSize, ExecutorService executor) {
         // Create the boolean array for primes up to sqrt(limit)
         boolean[] isPrime = simpleIntSieve((int) segmentSize);
         List<Long> primes = new ArrayList<>();
@@ -227,75 +225,59 @@ public class PrimeFinder {
         List<Long> resultPrimes = new ArrayList<>(primes);
         // Get processors and make a thread pool (try w resources)
         logger.info("[Concurrent Sieve] Available processors: " + Runtime.getRuntime().availableProcessors());
-        try (ExecutorService executor = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors())) {
 
-            long low = segmentSize;
-            long high;
+        long low = segmentSize;
+        long high;
 
-            List<Future<Void>> futures = new ArrayList<>();
+        List<Future<Void>> futures = new ArrayList<>();
 
-            // Process each segment and mark non-primes
-            while (low <= limit) {
-                // Adjust the high for final segment as to not exceed array size
-                high = Math.min(low + segmentSize - 1, limit);
+        // Process each segment and mark non-primes
+        while (low <= limit) {
+            // Adjust the high for final segment as to not exceed array size
+            high = Math.min(low + segmentSize - 1, limit);
 
-                // Mark all numbers in the current segment as prime
-                boolean[] mark = new boolean[(int) (high - low + 1)];
-                Arrays.fill(mark, true);
+            // Mark all numbers in the current segment as prime
+            boolean[] mark = new boolean[(int) (high - low + 1)];
+            Arrays.fill(mark, true);
 
-                // Immutability for thread safe concurrency
-                final long segmentLow = low;
-                final long segmentHigh = high;
+            // Immutability for thread safe concurrency
+            final long segmentLow = low;
+            final long segmentHigh = high;
 
-                // Build threads and add them to futures
-                futures.add(executor.submit(() -> {
-                    // Use the primes from the simple sieve to mark multiples in the current segment
-                    for (long prime : primes) {
-                        long start = Math.max(prime * prime, (segmentLow + prime - 1) / prime * prime);
+            // Build threads and add them to futures
+            futures.add(executor.submit(() -> {
+                // Use the primes from the simple sieve to mark multiples in the current segment
+                for (long prime : primes) {
+                    long start = Math.max(prime * prime, (segmentLow + prime - 1) / prime * prime);
 
-                        for (long j = start; j <= segmentHigh; j += prime) {
-                            mark[(int) (j - segmentLow)] = false;
-                        }
+                    for (long j = start; j <= segmentHigh; j += prime) {
+                        mark[(int) (j - segmentLow)] = false;
                     }
-
-                    // Collect all primes from the current segment
-                    synchronized (resultPrimes) {
-                        for (int i = 0; i < mark.length; i++) {
-                            if (mark[i]) resultPrimes.add(segmentLow + i);
-                        }
-                    }
-                    return null;
-                }));
-
-                // Slide up bv segmentSize to next segment
-                low += segmentSize;
-            }
-
-            logger.info("[Concurrent Sieve] Configured active threads: " + Thread.activeCount());
-
-            for (Future<Void> future : futures) {
-                try{
-                    future.get();
-                } catch (ExecutionException | InterruptedException e) {
-                    throw new ConcurrentSieveException(e.getMessage(), e.getCause());
                 }
-            }
+
+                // Collect all primes from the current segment
+                synchronized (resultPrimes) {
+                    for (int i = 0; i < mark.length; i++) {
+                        if (mark[i]) resultPrimes.add(segmentLow + i);
+                    }
+                }
+                return null;
+            }));
+
+            // Slide up bv segmentSize to next segment
+            low += segmentSize;
         }
 
-        return resultPrimes;
-    }
+        logger.info("[Concurrent Sieve] Configured active threads: " + Thread.activeCount());
 
-    private static long getDynamicSegmentSize(long limit) {
-        int availableProcessors = Runtime.getRuntime().availableProcessors();
-        long freeMemory = Runtime.getRuntime().freeMemory();
-        int scalingFactor = switch((int) Math.log10(limit)) {
-            case 0, 1, 2, 3, 4, 5, 6, 7     -> 1;   // up to 10^7 (10_000_000)        10M
-            case 8, 9                       -> 2;   // up to 10^9 (1_000_000_000)     1B
-            default                         -> 4;   // beyond 10^10 (10_000_000_000)  10B+ (bad idea...)
-        };
-        logger.info("[Concurrent Sieve]:[Dynamic Segment Size] SegmentSize scaling factor: " + scalingFactor);
-        long maxMemPerThread = freeMemory / availableProcessors / scalingFactor;
-        return Math.min(maxMemPerThread, (long) Math.sqrt(limit));
+        for (Future<Void> future : futures) {
+            try{
+                future.get();
+            } catch (ExecutionException | InterruptedException e) {
+                throw new ConcurrentSieveException(e.getMessage(), e.getCause());
+            }
+        }
+        return resultPrimes;
     }
 
     private static boolean isPrimeNaive(long num) {

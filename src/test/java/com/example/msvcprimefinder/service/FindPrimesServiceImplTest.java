@@ -1,14 +1,17 @@
 package com.example.msvcprimefinder.service;
 
+import com.example.msvcprimefinder.concurrent.ExecutorServiceProvider;
 import com.example.msvcprimefinder.exception.FindPrimesArgException;
 import com.example.msvcprimefinder.model.enums.PrimeAlgorithmNames;
 import com.example.msvcprimefinder.repository.PrimeRepository;
 import com.example.msvcprimefinder.response.FindPrimesResponse;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
 import java.util.List;
@@ -16,15 +19,19 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
+@SpringBootTest
+@AutoConfigureMockMvc
 public class FindPrimesServiceImplTest {
 
-    @InjectMocks
+    @Autowired
     private FindPrimesServiceImpl findPrimesService;
 
-    @Mock
-    PrimeRepository primeRepository;
+    @Autowired
+    private ExecutorServiceProvider executorServiceProvider;
 
+    @MockBean
+    PrimeRepository primeRepository;
 
     private void mockFindByValueLessThanEqual(long limit, List<Long> primes) {
         when(primeRepository.findByValueLessThanEqual(limit)).thenReturn(primes);
