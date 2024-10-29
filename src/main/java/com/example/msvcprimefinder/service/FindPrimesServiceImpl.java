@@ -1,10 +1,7 @@
 package com.example.msvcprimefinder.service;
 
-import com.example.msvcprimefinder.concurrent.ExecutorServiceProvider;
 import com.example.msvcprimefinder.exception.FindPrimesArgException;
-import com.example.msvcprimefinder.model.entity.Prime;
 import com.example.msvcprimefinder.model.enums.PrimeAlgorithmNames;
-import com.example.msvcprimefinder.repository.PrimeRepository;
 import com.example.msvcprimefinder.response.FindPrimesResponse;
 import com.example.msvcprimefinder.util.PrimesTimer;
 import com.example.msvcprimefinder.util.type.PrimesTimerResult;
@@ -18,10 +15,8 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
-import java.util.stream.IntStream;
 
 import static com.example.msvcprimefinder.algo.PrimeFinder.*;
-import static com.example.msvcprimefinder.algo.PrimeFinder.findPrimesWithSegmentedSieve_Concurrent;
 
 @Service
 public class FindPrimesServiceImpl implements FindPrimesService {
@@ -38,27 +33,27 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     private static final int SMART_LIMIT_SWITCH = 5_000_000;
     private static final List<Long> EMPTY_PRIMES = List.of();
 
-    private final PrimeRepository primeRepository;
+    private final RedisPrimeCacheService redisPrimeCacheService;
     private final ExecutorServiceProvider executorServiceProvider;
 
     private long cachedPrimesLimit = 0;
 
     @Autowired
-    public FindPrimesServiceImpl(PrimeRepository primeRepository, ExecutorServiceProvider executorServiceProvider) {
-        this.primeRepository = primeRepository;
+    public FindPrimesServiceImpl(RedisPrimeCacheService redisPrimeCacheService, ExecutorServiceProvider executorServiceProvider) {
+        this.redisPrimeCacheService = redisPrimeCacheService;
         this.executorServiceProvider = executorServiceProvider;
     }
 
     @Transactional
-    public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache, boolean buildCache, boolean withResult) {
-        throwInputErrors(limit, selectedAlgorithm, buildCache);
+    public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache, boolean withResult) {
+        throwInputErrors(limit, selectedAlgorithm, useCache);
         long saveToCacheDurationMs = 0;
         long saveToCacheDurationNs = 0;
 
         if (useCache) {
             logger.warn("Cached Primes Limit: {}", cachedPrimesLimit);
             if (limit <= cachedPrimesLimit) {
-                return handleCacheHit(limit, buildCache, withResult);
+                return handleCacheHit(limit, withResult);
             }
         }
 
@@ -73,10 +68,9 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(getPrimesFn(limit, selectedAlgorithm));
         logger.info("Execution Time for {}: {} ms", selectedAlgorithm.name(), result.durationMs());
 
-        if (buildCache) {
-            // Drop table + save primes
-            deleteAllPrimesSafe();
-            PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> batchSavePrimes(result.primes()));
+        if (useCache) {
+            // Drop cache + save primes
+            PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> redisPrimeCacheService.savePrimes(result.primes()));
             saveToCacheDurationMs = saveToCacheResult.durationMs();
             saveToCacheDurationNs = saveToCacheResult.durationNs();
             cachedPrimesLimit = limit;
@@ -89,25 +83,12 @@ public class FindPrimesServiceImpl implements FindPrimesService {
                 result.durationMs() + saveToCacheDurationMs,
                 result.durationNs() + saveToCacheDurationNs,
                 selectedAlgorithm.name(),
-                buildCache,
                 useCache
         );
     }
 
-    public void deleteAllPrimesSafe() {
-        try {
-            primeRepository.deleteAllPrimes();
-        } catch (Exception e) {
-            if (e.getMessage().contains("no such table: Prime")) {
-                logger.warn("Tried to delete non-existent table: Prime. Do nothing");
-            } else {
-                throw e;
-            }
-        }
-    }
-
-    private FindPrimesResponse handleCacheHit(long limit, boolean buildCache, boolean withResult) {
-        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() -> primeRepository.findByValueLessThanEqual(limit));
+    private FindPrimesResponse handleCacheHit(long limit, boolean withResult) {
+        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() -> redisPrimeCacheService.getPrimesUpTo(limit));
         logger.info("Execution Time for {}: {} ms", CACHE_HIT_MESSAGE, result.durationMs());
         return new FindPrimesResponse(
                 withResult ? result.primes() : EMPTY_PRIMES,
@@ -115,7 +96,6 @@ public class FindPrimesServiceImpl implements FindPrimesService {
                 result.durationMs(),
                 result.durationNs(),
                 CACHE_HIT_MESSAGE,
-                buildCache,
                 true
         );
     }
@@ -134,36 +114,19 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         };
     }
 
-    @Transactional
-    public Integer batchSavePrimes(List<Long> primes) {
-        int batchSize = primes.size() > 100_000 ? 10_000 : 1000;
-        int upperBound = (primes.size() + batchSize - 1) / batchSize;
-
-        IntStream.range(0, upperBound)
-                .mapToObj(i -> {
-                    int startIndex = i * batchSize;
-                    int endIndex = Math.min((i + 1) * batchSize, primes.size());
-                    return primes.subList(startIndex, endIndex);
-                }).forEach(batch -> {
-                    List<Prime> primeEntities = batch.stream().map(Prime::new).toList();
-                    primeRepository.saveAll(primeEntities);
-                });
-        return primes.size();
-    }
-
     private Supplier<List<Long>> handleConcurrentSieve(long limit) {
         ExecutorService executor = executorServiceProvider.getExecutor();
         return () -> findPrimesWithSegmentedSieve_Concurrent(limit, executorServiceProvider.getDynamicSegmentSize(limit), executor);
     }
 
-    private void throwInputErrors(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean buildCache) {
+    private void throwInputErrors(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache) {
         if (limit >= Integer.MAX_VALUE && !VALID_LARGE_LIMIT_ALGORITHMS.contains(selectedAlgorithm)) {
             logger.warn("[findPrimes]: limit > MAX_INT without Seg-Sieve algorithm");
             throw new FindPrimesArgException("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant");
         }
-        if (buildCache && limit > 10_000_000) {
-            logger.warn("[findPrimes]: limit > 10_000_000 with buildCache enabled");
-            throw new FindPrimesArgException("Limit too large for caching! Please disable caching (&buildCache=false) or use a smaller limit");
+        if (useCache && limit > 100_000_000) {
+            logger.warn("[findPrimes]: limit > 100_000_000 with buildCache enabled");
+            throw new FindPrimesArgException("Limit too large for caching! Please disable caching (&useCache=false) or use a smaller limit");
         }
     }
 }

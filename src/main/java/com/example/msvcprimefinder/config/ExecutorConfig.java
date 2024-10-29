@@ -1,6 +1,6 @@
 package com.example.msvcprimefinder.config;
 
-import com.example.msvcprimefinder.concurrent.ExecutorServiceProvider;
+import com.example.msvcprimefinder.service.ExecutorServiceProvider;
 import jakarta.annotation.PreDestroy;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Configuration;

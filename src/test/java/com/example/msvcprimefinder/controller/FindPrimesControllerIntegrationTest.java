@@ -1,9 +1,7 @@
 package com.example.msvcprimefinder.controller;
 
-import com.example.msvcprimefinder.model.entity.Prime;
-import com.example.msvcprimefinder.repository.PrimeRepository;
 import com.example.msvcprimefinder.service.FindPrimesService;
-import com.example.msvcprimefinder.service.FindPrimesServiceImpl;
+import com.example.msvcprimefinder.service.RedisPrimeCacheService;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +17,8 @@ import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.Mockito.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
 public class FindPrimesControllerIntegrationTest {
@@ -28,16 +27,13 @@ public class FindPrimesControllerIntegrationTest {
     private int port;
 
     @Autowired
-    private PrimeRepository primeRepository;
-
-    @Autowired
-    private FindPrimesService primesService;
+    private RedisPrimeCacheService redisPrimeCacheService;
 
     @BeforeEach
     void setup() {
         RestAssured.port = port;
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-        primesService.deleteAllPrimesSafe();
+        redisPrimeCacheService = spy(redisPrimeCacheService);
     }
 
     private final List<Long> primesTo100 = List.of(2L, 3L, 5L, 7L,11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L,
@@ -48,7 +44,6 @@ public class FindPrimesControllerIntegrationTest {
         Response response = given()
             .queryParam("limit", 100)
             .queryParam("useCache", false)
-            .queryParam("buildCache", false)
             .queryParam("algorithm", "SIEVE")
         .when()
             .get("/api/find-primes");
@@ -57,15 +52,15 @@ public class FindPrimesControllerIntegrationTest {
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
         assertEquals(primesTo100, responsePrimes);
-        assertTrue(primeRepository.findAll().isEmpty(), "Database should remain empty");
+        verify(redisPrimeCacheService, never()).savePrimes(anyList());
     }
 
     @Test
     void findPrimes_WithCache_SmallLimit_Happy() {
+        long limit = 100;
         Response response = given()
-            .queryParam("limit", 100)
-            .queryParam("useCache", false)
-            .queryParam("buildCache", true)
+            .queryParam("limit", limit)
+            .queryParam("useCache", true)
             .queryParam("algorithm", "SIEVE")
         .when()
             .get("/api/find-primes");
@@ -74,9 +69,9 @@ public class FindPrimesControllerIntegrationTest {
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
         assertEquals(primesTo100, responsePrimes);
-        assertEquals(primesTo100, primeRepository.findAll().stream().map(Prime::getValue).toList(), "Database should contain primes upto and including limit");
+        assertEquals(primesTo100, redisPrimeCacheService.getPrimesUpTo(limit), "Database should contain primes upto and including limit");
         Response response2 = given()
-            .queryParam("limit", 100)
+            .queryParam("limit", limit)
             .queryParam("useCache", true)
         .when()
             .get("/api/find-primes");
@@ -85,6 +80,7 @@ public class FindPrimesControllerIntegrationTest {
                 .statusCode(HttpStatus.OK.value())
                 .body("algorithmName", equalTo("CACHE_HIT"));
         assertEquals(primesTo100, responsePrimes2);
+        verify(redisPrimeCacheService, times(1)).getPrimesUpTo(limit);
     }
 
     @Test
@@ -116,6 +112,6 @@ public class FindPrimesControllerIntegrationTest {
         .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("message", containsString("findPrimes.limit: must be greater than or equal to 2"));
-        assertTrue(primeRepository.findAll().isEmpty(), "Database should remain empty after invalid request");
+        verify(redisPrimeCacheService, never()).savePrimes(anyList());
     }
 }

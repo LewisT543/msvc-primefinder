@@ -1,4 +1,4 @@
-package com.example.msvcprimefinder.concurrent;
+package com.example.msvcprimefinder.service;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;

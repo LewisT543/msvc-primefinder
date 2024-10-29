@@ -36,11 +36,8 @@ public interface FindPrimesAPI {
             @Parameter(description = "Algorithm to use for finding primes", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "SMART") PrimeAlgorithmNames algo,
 
-            @Parameter(description = "Use cache if available", required = false, in = ParameterIn.QUERY)
+            @Parameter(description = "Use redis cache if available", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "false") boolean useCache,
-
-            @Parameter(description = "Build cache after finding primes (slow)", required = false, in = ParameterIn.QUERY)
-            @RequestParam(required = false, defaultValue = "false") boolean buildCache,
 
             @Parameter(description = "Return a dummy list of primes instead of the real result", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "true") boolean withResult
