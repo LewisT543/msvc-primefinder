@@ -21,8 +21,10 @@ public interface FindPrimesAPI {
             description = "Returns a result containing a list of prime numbers up to the given limit, the specified algorithm and time taken.",
             responses = {
                     @ApiResponse(responseCode = "200", description = "Successfully retrieved primes",
-                            content = @Content(mediaType = "application/json",
-                            schema = @Schema(implementation = FindPrimesResponse.class))
+                            content = {
+                                @Content(mediaType = "application/json", schema = @Schema(implementation = FindPrimesResponse.class)),
+                                @Content(mediaType = "application/xml", schema = @Schema(implementation = FindPrimesResponse.class))
+                            }
                     ),
                     @ApiResponse(responseCode = "400", description = "Invalid input"),
                     @ApiResponse(responseCode = "500", description = "Server Error")

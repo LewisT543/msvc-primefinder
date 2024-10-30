@@ -12,10 +12,10 @@ import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.containsString;
-import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
@@ -45,12 +45,15 @@ public class FindPrimesControllerIntegrationTest {
             .queryParam("limit", 100)
             .queryParam("useCache", false)
             .queryParam("algorithm", "SIEVE")
-        .when()
+            .when()
             .get("/api/find-primes");
+
         List<Long> responsePrimes = response.jsonPath().getList("result", Long.class);
+
         response.then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
+
         assertEquals(primesTo100, responsePrimes);
         verify(redisPrimeCacheService, never()).savePrimes(anyList());
     }
@@ -62,23 +65,30 @@ public class FindPrimesControllerIntegrationTest {
             .queryParam("limit", limit)
             .queryParam("useCache", true)
             .queryParam("algorithm", "SIEVE")
-        .when()
+            .when()
             .get("/api/find-primes");
+
         List<Long> responsePrimes = response.jsonPath().getList("result", Long.class);
+
         response.then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
+
         assertEquals(primesTo100, responsePrimes);
         assertEquals(primesTo100, redisPrimeCacheService.getPrimesUpTo(limit), "Database should contain primes upto and including limit");
+
         Response response2 = given()
             .queryParam("limit", limit)
             .queryParam("useCache", true)
-        .when()
+            .when()
             .get("/api/find-primes");
+
         List<Long> responsePrimes2 = response2.jsonPath().getList("result", Long.class);
+
         response2.then()
                 .statusCode(HttpStatus.OK.value())
                 .body("algorithmName", equalTo("CACHE_HIT"));
+
         assertEquals(primesTo100, responsePrimes2);
         verify(redisPrimeCacheService, times(1)).getPrimesUpTo(limit);
     }
@@ -88,17 +98,18 @@ public class FindPrimesControllerIntegrationTest {
         given()
             .queryParam("limit", 10000)
             .queryParam("algorithm", "SMART")
-        .when()
+            .when()
             .get("/api/find-primes")
-        .then()
+            .then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
+
         given()
             .queryParam("limit", 10000000)
             .queryParam("algorithm", "SMART")
-        .when()
+            .when()
             .get("/api/find-primes")
-        .then()
+            .then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SEGMENTED_SIEVE_CONCURRENT"));
     }
@@ -107,11 +118,54 @@ public class FindPrimesControllerIntegrationTest {
     public void findPrimes_InvalidArgumentHandling() {
         given()
             .queryParam("limit", -5)
-        .when()
+            .when()
             .get("/api/find-primes")
-        .then()
+            .then()
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("message", containsString("findPrimes.limit: must be greater than or equal to 2"));
+
         verify(redisPrimeCacheService, never()).savePrimes(anyList());
     }
+
+    @Test
+    void findPrimes_XMLResponse_NoCache_SmallLimit_Happy() {
+        Response response = given()
+                .queryParam("limit", 100)
+                .queryParam("useCache", false)
+                .queryParam("withResult", true)
+                .queryParam("algorithm", "SIEVE")
+                .header("Accept", "application/xml")
+                .when()
+                .get("/api/find-primes");
+
+        List<Long> responsePrimes = response.xmlPath().getList("FindPrimesResponse.result.prime", Long.class);
+        Long responseLength = response.xmlPath().getLong("FindPrimesResponse.numberOfPrimes");
+
+        assertEquals(primesTo100, responsePrimes);
+        assertEquals(primesTo100.size(), responseLength);
+
+        response.then()
+                .statusCode(HttpStatus.OK.value())
+                .contentType("application/xml")
+                .body("FindPrimesResponse.algorithmName", equalTo("SIEVE"));
+
+        verify(redisPrimeCacheService, never()).savePrimes(anyList());
+    }
+
+    @Test
+    void findPrimes_XMLResponse_InvalidArgumentHandling() {
+        Response response = given()
+                .queryParam("limit", -5)
+                .header("Accept", "application/xml")
+                .when()
+                .get("/api/find-primes");
+
+        response.then()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .contentType("application/xml")
+                .body("FindPrimesErrorResponse.message", containsString("findPrimes.limit: must be greater than or equal to 2"));
+
+        verify(redisPrimeCacheService, never()).savePrimes(anyList());
+    }
+
 }

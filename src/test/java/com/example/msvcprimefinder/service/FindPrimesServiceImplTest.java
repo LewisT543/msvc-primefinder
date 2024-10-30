@@ -59,14 +59,14 @@ public class FindPrimesServiceImplTest {
         assertEquals("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant", exception.getMessage());
     }
 
-//    @Test
-//    public void testFindPrimes_LimitGt100MAndBuildCache() {
-//        long limit = 100_000_000 + 1;
-//        Exception exception = assertThrows(FindPrimesArgException.class, () -> {
-//            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, true);
-//        });
-//        assertEquals("Limit too large for caching! Please disable caching (&useCache=false) or use a smaller limit", exception.getMessage());
-//    }
+    @Test
+    public void testFindPrimes_LimitGt100MAndBuildCache() {
+        long limit = 100_000_000 + 1;
+        Exception exception = assertThrows(FindPrimesArgException.class, () -> {
+            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, true);
+        });
+        assertEquals("Limit too large for caching! Please disable caching (&useCache=false) or use a smaller limit", exception.getMessage());
+    }
 
     @Test
     public void testFindPrimes_SmartAlgorithmSelection_LimitGt() {
