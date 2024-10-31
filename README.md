@@ -15,6 +15,21 @@ This application provides an API to calculate prime numbers up to a specified li
 - Caching results in an in-memory store (Redis) for improved performance.
 - Handles invalid input parameters gracefully with custom error responses.
 
+## Live Deployment:
+This spring boot app is currently deployed to heroku at the following url:
+
+https://msvc-primefinder-c87375e1eff8.herokuapp.com
+
+Example query:
+https://msvc-primefinder-c87375e1eff8.herokuapp.com/api/find-primes?useCache=true&algo=SEGMENTED_SIEVE_CONCURRENT&limit=100000000&withResult=false
+
+Please Note: This level of Heroku deployment (free tier) - only has a limited amount of memory (~500MB) so
+calculating huge primes using this service is not possible currently. From my testing the limit is about
+180 million before it start throwing out of memory errors. 
+
+Possible improvement here could be introducing even more dynamic segment sizing, to allow the segment sizer to
+create a greater number of smaller segments to reduce memory usage at the cost of calculation speed.
+
 ## Setup Instructions
 
 To set up the project locally, follow these steps:
