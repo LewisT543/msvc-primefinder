@@ -1,6 +1,7 @@
 package com.example.msvcprimefinder.algo;
 
 import com.example.msvcprimefinder.exception.ConcurrentSieveException;
+import com.example.msvcprimefinder.util.PrimeEstimator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -9,49 +10,55 @@ import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.IntStream;
 import java.util.stream.LongStream;
 
 public class PrimeFinder {
     private static final Logger logger = LoggerFactory.getLogger(PrimeFinder.class);
 
-    public static List<Long> findPrimesNaive(long limit) {
-        List<Long> primes = new ArrayList<>();
+    public static long[] findPrimesNaive(long limit) {
+        long[] primes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        int count = 0;
 
         // Check each number from 2 up to limit
-        for (long num = 2; num <= limit; num++) {
-            if (isPrimeNaive(num)) {
-                primes.add(num);  // If prime, add to list
+        for (long i = 2; i <= limit; i++) {
+            if (isPrimeNaive(i)) {
+                primes[count++] = i;  // If prime, add to list
             }
         }
-        return primes;
+        return Arrays.copyOf(primes, count);
     }
 
-    public static List<Long> findPrimesWithSieve(long limit) {
-        int intLimit = (int)limit; // if limit > max_int exception has already been thrown
+    public static long[] findPrimesWithSieve(long limit) {
+        int intLimit = (int) limit; // if limit > max_int exception has already been thrown
         boolean[] isPrime = simpleIntSieve(intLimit);
-        List<Long> primes = new ArrayList<>();
+        long[] primes = new long[PrimeEstimator.estimateNumberOfPrimes(limit) + 1];
+        int count = 0;
         for (int i = 2; i <= limit; i++) {
-            if (isPrime[i]) primes.add((long) i);
+            if (isPrime[i]){
+                primes[count++] = i;
+            }
         }
-        return primes;
+        return Arrays.copyOf(primes, count);
     }
 
-    public static List<Long> findPrimesWithSieve_BitSet(long limit) {
+    public static long[] findPrimesWithSieve_BitSet(long limit) {
         int intLimit = (int)limit; // if limit > max_int exception has already been thrown
         BitSet isPrime = bitSetIntSieve(intLimit);
-        List<Long> primes = new ArrayList<>();
+        long[] primes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        int count = 0;
         for (int i = 2; i <= limit; i++) {
-            if (isPrime.get(i)) primes.add((long) i);
+            if (isPrime.get(i)) {
+                primes[count++] = i;
+            }
         }
-        return primes;
+        return Arrays.copyOf(primes, count);
     }
 
     // Just for fun - Arguably less readable than for loops in this case
-    public static List<Long> findPrimesWithSieve_StreamsAPI(long limit) {
+    public static long[] findPrimesWithSieve_StreamsAPI(long limit) {
         int intLimit = (int)limit; // if limit > max_int exception has already been thrown
         boolean[] isPrime = new boolean[intLimit + 1];
         IntStream.rangeClosed(2, intLimit).forEach(i -> isPrime[i] = true);
@@ -65,28 +72,40 @@ public class PrimeFinder {
                     }
                 });
 
-        return IntStream.rangeClosed(2, intLimit)
-                .filter(i -> isPrime[i])
-                .mapToObj(Long::valueOf)
-                .toList();
+        long count = IntStream.rangeClosed(2, intLimit).filter(i -> isPrime[i]).count();
+
+        long[] result = new long[(int) count];
+        int resultCount = 0;
+
+        for(int i = 2; i <= intLimit; i++) {
+            if (isPrime[i]) {
+                result[resultCount++] = i;
+            }
+        }
+
+        return result;
     }
 
-    public static List<Long> findPrimesWithSegmentedSieve(long limit) {
+    public static long[] findPrimesWithSegmentedSieve(long limit) {
         long segmentSize = (long) Math.sqrt(limit) + 1;
 
         // Create the boolean array for result up to sqrt(limit)
         boolean[] isPrime = simpleIntSieve((int) segmentSize);
-        List<Long> smallPrimes = new ArrayList<>();
+        long[] smallPrimes = new long[(int) segmentSize];
+        int smallPrimesCount = 0;
 
         // Collect result from the boolean array
         for (int i = 2; i < segmentSize; i++) {
-            if (isPrime[i]) smallPrimes.add((long) i);
+            if (isPrime[i]) {
+                smallPrimes[smallPrimesCount++] = i;
+            }
         }
 
         // List to hold all result up to the limit
-        List<Long> resultPrimes = new ArrayList<>(smallPrimes);
+        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        int resultCount = 0;
 
-        long low = segmentSize;
+        long low = 2;
         long high;
 
         // Process each segment and mark non-result
@@ -99,9 +118,9 @@ public class PrimeFinder {
             Arrays.fill(mark, true);
 
             // Use the result from the simple sieve to mark multiples in the current segment
-            for (long prime : smallPrimes) {
+            for (int i = 0; i < smallPrimesCount; i++) {
+                long prime = smallPrimes[i];
                 long start = Math.max(prime * prime, (low + prime - 1) / prime * prime);
-
                 for (long j = start; j <= high; j += prime) {
                     mark[(int) (j - low)] = false;
                 }
@@ -110,7 +129,7 @@ public class PrimeFinder {
             // Collect all result from the current segment
             for (int i = 0; i < mark.length; i++) {
                 if (mark[i]) {
-                    resultPrimes.add(low + i);
+                    resultPrimes[resultCount++] = low + i;
                 }
             }
 
@@ -118,25 +137,29 @@ public class PrimeFinder {
             low += segmentSize;
         }
 
-        return resultPrimes;
+        return Arrays.copyOf(resultPrimes, resultCount);
     }
 
-    public static List<Long> findPrimesWithSegmentedSieve_BitSet(long limit) {
+    public static long[] findPrimesWithSegmentedSieve_BitSet(long limit) {
         long segmentSize = (long) Math.sqrt(limit) + 1;
 
         // Create the boolean array for result up to sqrt(limit)
         BitSet isPrime = bitSetIntSieve((int) segmentSize);
-        List<Long> primes = new ArrayList<>();
+        long[] smallPrimes = new long[(int) segmentSize];
+        int smallPrimesCount = 0;
 
         // Collect result from the boolean array
         for (int i = 2; i < segmentSize; i++) {
-            if (isPrime.get(i)) primes.add((long) i);
+            if (isPrime.get(i)) {
+                smallPrimes[smallPrimesCount++] =  i;
+            }
         }
 
         // List to hold all result up to the limit
-        List<Long> resultPrimes = new ArrayList<>(primes);
+        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        int resultCount = 0;
 
-        long low = segmentSize;
+        long low = 2;
         long high;
 
         // Process each segment and mark non-result
@@ -149,9 +172,10 @@ public class PrimeFinder {
             mark.set(0, (int) (high - low + 1));
 
             // Use the result from the simple sieve to mark multiples in the current segment
-            for (long prime : primes) {
-                long start = Math.max(prime * prime, (low + prime - 1) / prime * prime);
 
+            for (int i = 0; i < smallPrimesCount; i++) {
+                long prime = smallPrimes[i];
+                long start = Math.max(prime * prime, (low + prime - 1) / prime * prime);
                 for (long j = start; j <= high; j += prime) {
                     mark.clear((int) (j - low));
                 }
@@ -160,7 +184,7 @@ public class PrimeFinder {
             // Collect all result from the current segment
             for (int i = 0; i < mark.size(); i++) {
                 if (mark.get(i)) {
-                    resultPrimes.add(low + i);
+                    resultPrimes[resultCount++] = low + i;
                 }
             }
 
@@ -168,24 +192,25 @@ public class PrimeFinder {
             low += segmentSize;
         }
 
-        return resultPrimes;
+        return Arrays.copyOf(resultPrimes, resultCount);
     }
 
-    public static List<Long> findPrimesWithSegmentedSieve_StreamsAPI(long limit) {
+    public static long[] findPrimesWithSegmentedSieve_StreamsAPI(long limit) {
         long segmentSize = (long) Math.sqrt(limit) + 1;
 
         // Generate all result up to sqrt(limit) using the simple int sieve
         boolean[] isPrime = simpleIntSieve((int) segmentSize);
-        List<Long> primes = IntStream.range(2, isPrime.length - 1)
+        long[] smallPrimes = IntStream.range(2, isPrime.length - 1)
                 .filter(i -> isPrime[i])
-                .mapToObj(i -> (long) i)
-                .toList();
+                .mapToLong(i -> i)
+                .toArray();
 
         // Use the small result to mark non-result in segments up to limit
-        List<Long> resultPrimes = new ArrayList<>(primes);
+        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        AtomicInteger resultCount = new AtomicInteger( 0);
 
         // Iterate over segments, starting from segmentSize
-        LongStream.iterate(segmentSize, low -> low <= limit, low -> low + segmentSize)
+        LongStream.iterate(2, low -> low <= limit, low -> low + segmentSize)
                 .forEach(low -> {
                     // Adjust the high for the last segment
                     long high = Math.min(low + segmentSize - 1, limit);
@@ -195,38 +220,44 @@ public class PrimeFinder {
                     Arrays.fill(mark, true);
 
                     // Use result from the smaller range to mark non-result
-                    primes.forEach(prime -> {
+                    for (long prime : smallPrimes) {
                         long start = Math.max(prime * prime, (low + prime - 1) / prime * prime);
                         LongStream.iterate(start, j -> j <= high, j -> j + prime)
                                 .forEach(j -> mark[(int) (j - low)] = false);
-                    });
+                    }
 
-                    // Collect result from this segment and add them to result
-                    IntStream.range(0, mark.length)
-                            .filter(i -> mark[i])
-                            .mapToLong(i -> low + i)
-                            .forEach(resultPrimes::add);
+                    for (int i = 0; i < mark.length; i++) {
+                        if (mark[i]) {
+                            int index = resultCount.getAndIncrement();
+                            resultPrimes[index] = low + i;
+                        }
+                    }
                 });
 
-        return resultPrimes;
+        return Arrays.copyOf(resultPrimes, resultCount.get());
     }
 
-    public static List<Long> findPrimesWithSegmentedSieve_Concurrent(long limit, long segmentSize, ExecutorService executor) {
+    public static long[] findPrimesWithSegmentedSieve_Concurrent(long limit, long segmentSize, ExecutorService executor) {
         // Create the boolean array for result up to sqrt(limit)
         boolean[] isPrime = simpleIntSieve((int) segmentSize);
-        List<Long> primes = new ArrayList<>();
+        long[] smallPrimes = new long[isPrime.length];
+        AtomicInteger smallPrimesCount = new AtomicInteger(0);
 
         // Collect result from the boolean array
         for (int i = 2; i <= segmentSize; i++) {
-            if (isPrime[i]) primes.add((long) i);
+            if (isPrime[i]) {
+                smallPrimes[smallPrimesCount.getAndIncrement()] =  i;
+            }
         }
 
         // List to hold all result up to the limit
-        List<Long> resultPrimes = new ArrayList<>(primes);
+        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        AtomicInteger resultCount = new AtomicInteger(0);
+
         // Get processors and make a thread pool (try w resources)
         logger.info("[Concurrent Sieve] Available processors: " + Runtime.getRuntime().availableProcessors());
 
-        long low = segmentSize;
+        long low = 2;
         long high;
 
         List<CompletableFuture<Void>> futures = new ArrayList<>();
@@ -247,9 +278,9 @@ public class PrimeFinder {
             // Build threads and add them to futures
             CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                 // Use the result from the simple sieve to mark multiples in the current segment
-                for (long prime : primes) {
+                for (int i = 0; i < smallPrimesCount.get(); i++) {
+                    long prime = smallPrimes[i];
                     long start = Math.max(prime * prime, (segmentLow + prime - 1) / prime * prime);
-
                     for (long j = start; j <= segmentHigh; j += prime) {
                         mark[(int) (j - segmentLow)] = false;
                     }
@@ -258,7 +289,9 @@ public class PrimeFinder {
                 // Collect all result from the current segment
                 synchronized (resultPrimes) {
                     for (int i = 0; i < mark.length; i++) {
-                        if (mark[i]) resultPrimes.add(segmentLow + i);
+                        if (mark[i]) {
+                            resultPrimes[resultCount.getAndIncrement()] = segmentLow + i;
+                        }
                     }
                 }
             }, executor).exceptionally(ex -> {
@@ -280,7 +313,7 @@ public class PrimeFinder {
             throw new ConcurrentSieveException(e.getMessage(), e.getCause());
         }
 
-        return resultPrimes;
+        return Arrays.copyOf(resultPrimes, resultCount.get());
     }
 
     private static boolean isPrimeNaive(long num) {

@@ -15,8 +15,8 @@ import java.util.List;
 import static io.restassured.RestAssured.given;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.equalTo;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
@@ -35,8 +35,12 @@ public class FindPrimesControllerIntegrationTest {
         reset(primeCacheService);
     }
 
-    private final List<Long> primesTo100 = List.of(2L, 3L, 5L, 7L,11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L,
-            43L, 47L, 53L, 59L, 61L, 67L, 71L, 73L, 79L, 83L, 89L, 97L);
+    private final long[] primesTo100 = new long[]{2L, 3L, 5L, 7L,11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L,
+            43L, 47L, 53L, 59L, 61L, 67L, 71L, 73L, 79L, 83L, 89L, 97L};
+
+    private long[] mapToArr(List<Long> primes) {
+        return primes.stream().mapToLong(Long::valueOf).toArray();
+    }
 
     @Test
     void findPrimes_NoCache_SmallLimit_Happy() {
@@ -47,14 +51,14 @@ public class FindPrimesControllerIntegrationTest {
             .when()
             .get("/api/find-primes");
 
-        List<Long> responsePrimes = response.jsonPath().getList("result", Long.class);
+        long[] responsePrimes = mapToArr(response.jsonPath().getList("result", Long.class));
 
         response.then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
 
-        assertEquals(primesTo100, responsePrimes);
-        verify(primeCacheService, never()).addPrimesToCache(anyList());
+        assertArrayEquals(primesTo100, responsePrimes);
+        verify(primeCacheService, never()).addPrimesToCache(any(long[].class));
     }
 
     @Test
@@ -67,14 +71,14 @@ public class FindPrimesControllerIntegrationTest {
             .when()
             .get("/api/find-primes");
 
-        List<Long> responsePrimes = response.jsonPath().getList("result", Long.class);
+        long[] responsePrimes = mapToArr(response.jsonPath().getList("result", Long.class));
 
         response.then()
             .statusCode(HttpStatus.OK.value())
             .body("algorithmName", equalTo("SIEVE"));
 
-        assertEquals(primesTo100, responsePrimes);
-        assertEquals(primesTo100, primeCacheService.getPrimesFromCacheToLimit(limit), "Cache should contain result upto and including limit");
+        assertArrayEquals(primesTo100, responsePrimes);
+        assertArrayEquals(primesTo100, primeCacheService.getPrimesFromCacheToLimit(limit), "Cache should contain result upto and including limit");
 
         Response response2 = given()
             .queryParam("limit", limit)
@@ -82,14 +86,14 @@ public class FindPrimesControllerIntegrationTest {
             .when()
             .get("/api/find-primes");
 
-        List<Long> responsePrimes2 = response2.jsonPath().getList("result", Long.class);
+        long[] responsePrimes2 = mapToArr(response2.jsonPath().getList("result", Long.class));
 
         response2.then()
                 .statusCode(HttpStatus.OK.value())
                 .body("algorithmName", equalTo("CACHE_HIT"));
 
-        assertEquals(primesTo100, responsePrimes2);
-        verify(primeCacheService, times(2)).getPrimesFromCacheToLimit(limit); // limit 2 here allowing for above check on line 77
+        assertArrayEquals(primesTo100, responsePrimes2);
+        verify(primeCacheService, times(2)).getPrimesFromCacheToLimit(limit); // limit 2 here allowing for above check on line 81
     }
 
     @Test
@@ -123,7 +127,7 @@ public class FindPrimesControllerIntegrationTest {
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("message", containsString("findPrimes.limit: must be greater than or equal to 2"));
 
-        verify(primeCacheService, never()).addPrimesToCache(anyList());
+        verify(primeCacheService, never()).addPrimesToCache(any(long[].class));
     }
 
     @Test
@@ -137,18 +141,18 @@ public class FindPrimesControllerIntegrationTest {
                 .when()
                 .get("/api/find-primes");
 
-        List<Long> responsePrimes = response.xmlPath().getList("FindPrimesResponse.result.prime", Long.class);
+        long[] responsePrimes = mapToArr(response.xmlPath().getList("FindPrimesResponse.result.prime", Long.class));
         Long responseLength = response.xmlPath().getLong("FindPrimesResponse.numberOfPrimes");
 
-        assertEquals(primesTo100, responsePrimes);
-        assertEquals(primesTo100.size(), responseLength);
+        assertArrayEquals(primesTo100, responsePrimes);
+        assertEquals(primesTo100.length, responseLength);
 
         response.then()
                 .statusCode(HttpStatus.OK.value())
                 .contentType("application/xml")
                 .body("FindPrimesResponse.algorithmName", equalTo("SIEVE"));
 
-        verify(primeCacheService, never()).addPrimesToCache(anyList());
+        verify(primeCacheService, never()).addPrimesToCache(any(long[].class));
     }
 
     @Test
@@ -164,6 +168,6 @@ public class FindPrimesControllerIntegrationTest {
                 .contentType("application/xml")
                 .body("FindPrimesErrorResponse.message", containsString("findPrimes.limit: must be greater than or equal to 2"));
 
-        verify(primeCacheService, never()).addPrimesToCache(anyList());
+        verify(primeCacheService, never()).addPrimesToCache(any(long[].class));
     }
 }

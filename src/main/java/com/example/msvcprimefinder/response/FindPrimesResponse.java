@@ -5,12 +5,11 @@ import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlProperty;
 import com.fasterxml.jackson.dataformat.xml.annotation.JacksonXmlRootElement;
 
 import java.time.LocalDateTime;
-import java.util.List;
 
 @JacksonXmlRootElement(localName = "FindPrimesResponse")
 public record FindPrimesResponse(
         @JacksonXmlElementWrapper(localName = "result")
-        @JacksonXmlProperty(localName = "prime") List<Long> result,
+        @JacksonXmlProperty(localName = "prime") long[] result,
         @JacksonXmlProperty(localName = "numberOfPrimes") long numberOfPrimes,
         @JacksonXmlProperty(localName = "executionTimeMs") long executionTimeMs,
         @JacksonXmlProperty(localName = "executionTimeNs") long executionTimeNs,
@@ -18,7 +17,7 @@ public record FindPrimesResponse(
         @JacksonXmlProperty(localName = "useCache") boolean useCache,
         @JacksonXmlProperty(localName = "timestamp") LocalDateTime timestamp
 ) {
-    public FindPrimesResponse(List<Long> result, long numberOfPrimes, long executionTimeMs, long executionTimeNs, String algorithmName, boolean useCache) {
+    public FindPrimesResponse(long[] result, long numberOfPrimes, long executionTimeMs, long executionTimeNs, String algorithmName, boolean useCache) {
         this(result, numberOfPrimes, executionTimeMs, executionTimeNs, algorithmName, useCache, LocalDateTime.now());
     }
 }

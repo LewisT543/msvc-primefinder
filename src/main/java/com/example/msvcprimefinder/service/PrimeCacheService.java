@@ -1,10 +1,12 @@
 package com.example.msvcprimefinder.service;
 
+import com.example.msvcprimefinder.util.PrimeEstimator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -21,24 +23,25 @@ public class PrimeCacheService {
         return maxSafeCacheSize;
     }
 
-    public Boolean addPrimesToCache(List<Long> primes) {
-        if (primes.size() * 8L > getMaxSafeCacheSize()) {
+    public Boolean addPrimesToCache(long[] primes) {
+        if (primes.length * 8L > getMaxSafeCacheSize()) {
             return false;
         }
-        cachedPrimes = new long[primes.size()];
-        for (int i = 0; i < primes.size(); i++) {
-            cachedPrimes[i] = primes.get(i);
-        }
+        cachedPrimes = new long[primes.length];
+        System.arraycopy(primes, 0, cachedPrimes, 0, primes.length);
         return true;
     }
 
-    public List<Long> getPrimesFromCacheToLimit(long limit) {
-        List<Long> primesToLimit = new ArrayList<>();
+    public long[] getPrimesFromCacheToLimit(long limit) {
+        long[] primesToLimit = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        int count = 0;
         for (long prime : cachedPrimes) {
-            if (prime <= limit) primesToLimit.add(prime);
+            if (prime <= limit) {
+                primesToLimit[count++] = prime;
+            }
             else break;
         }
-        return primesToLimit;
+        return Arrays.copyOf(primesToLimit, count);
     }
 
     public boolean isCached(long limit) {

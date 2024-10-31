@@ -10,9 +10,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Arrays;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
 @SpringBootTest
@@ -29,14 +30,14 @@ public class FindPrimesServiceImplTest {
 
 
     private final long SMART_MAX_SWITCH = 5_000_000;
-    private final List<Long> mockPrimes = List.of(2L, 3L, 5L, 7L,11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L,
-            43L, 47L, 53L, 59L, 61L, 67L, 71L, 73L, 79L, 83L, 89L, 97L);
+    private final long[] mockPrimes = new long[]{2L, 3L, 5L, 7L,11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L,
+            43L, 47L, 53L, 59L, 61L, 67L, 71L, 73L, 79L, 83L, 89L, 97L};
 
     @Test
     public void testFindPrimes_NoCache() {
         long limit = 100;
         FindPrimesResponse response = findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, true);
-        assertEquals(mockPrimes.size(), response.numberOfPrimes());
+        assertEquals(mockPrimes.length, response.numberOfPrimes());
         assertEquals(PrimeAlgorithmNames.SIEVE.name(), response.algorithmName());
     }
 
@@ -45,7 +46,7 @@ public class FindPrimesServiceImplTest {
         long limit = 100;
         FindPrimesResponse loadCacheResponse = findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, true, true);
         FindPrimesResponse response = findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, true, true);
-        assertEquals(mockPrimes.size(), response.numberOfPrimes());
+        assertEquals(mockPrimes.length, response.numberOfPrimes());
         assertEquals("CACHE_HIT", response.algorithmName());
     }
 
@@ -60,12 +61,14 @@ public class FindPrimesServiceImplTest {
     }
 
     @Test
-    public void testFindPrimes_LimitGt1BillionAndUseCache() {
+    public void testFindPrimes_SkipCacheSave_MemReqTooBig() {
+        PrimeCacheService primeCacheServiceMock = mock(PrimeCacheService.class);
+        when(primeCacheServiceMock.addPrimesToCache(any())).thenReturn(false);
+
+        FindPrimesService primesService = new FindPrimesServiceImpl(executorServiceProvider, primeCacheServiceMock);
         long limit = 1_000_000_000 + 1;
-        Exception exception = assertThrows(FindPrimesArgException.class, () -> {
-            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, true, true);
-        });
-        assertEquals("Limit too large for caching! Please disable caching (&useCache=false) or use a smaller limit", exception.getMessage());
+        primesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, true, true);
+        verify(primeCacheServiceMock, never()).setCachedLimit(anyLong());
     }
 
     @Test
@@ -96,8 +99,10 @@ public class FindPrimesServiceImplTest {
             FindPrimesResponse response = findPrimesService.findPrimes(limit, algorithm, false, true);
             PrimeAlgorithmNames expectedAlgorithm = algorithm == PrimeAlgorithmNames.SMART ? PrimeAlgorithmNames.SIEVE : algorithm;
             assertEquals(expectedAlgorithm.name(), response.algorithmName() , "Expected algorithm: " + expectedAlgorithm);
-            assertEquals(mockPrimes.size(), response.numberOfPrimes(), "Count of result should match for " + algorithm.name());
-            assertEquals(mockPrimes, response.result().stream().sorted().toList(), "Primes returned should match for " + algorithm.name());
+            assertEquals(mockPrimes.length, response.numberOfPrimes(), "Count of result should match for " + algorithm.name());
+            long[] responsePrimes = response.result();
+            Arrays.sort(responsePrimes);
+            assertArrayEquals(mockPrimes, responsePrimes, "Primes returned should match for " + algorithm.name());
             assertFalse(response.useCache(), "useCache should be false for " + algorithm.name());
         });
     }
@@ -131,7 +136,7 @@ public class FindPrimesServiceImplTest {
         int primesInABillion = 50_847_534;
         FindPrimesResponse response = findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT, false, false);
         assertEquals(PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT.name(), response.algorithmName());
-        assertEquals(List.of(), response.result());
+        assertArrayEquals(new long[0], response.result());
         assertEquals(primesInABillion, response.numberOfPrimes());
         assertFalse(response.useCache());
     }

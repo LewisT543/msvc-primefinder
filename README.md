@@ -6,9 +6,6 @@ This application provides an API to calculate prime numbers up to a specified li
 
 - **Java Version**: 20
 - **Framework**: Spring Boot
-- ~~**Database**: SQLite (for caching)~~
-- **Redis**: Caching
-- **Docker**: For running Redis / app
 - **Testing**: JUnit, Mockito, Rest-Assured
 
 ## Features
@@ -28,10 +25,6 @@ To set up the project locally, follow these steps:
 
 - **Maven**: Ensure you have Maven installed to manage project dependencies. You can install it from the [official Maven website](https://maven.apache.org/download.cgi).
 
-- **WSL(if Windows) + Redis**: Required for a local version of Redis to run tests. [official Redis website](https://redis.io/docs/latest/operate/oss_and_stack/install/install-redis/install-redis-on-windows/).
-
-- **Docker**: Containerization of Redis + App. [official Docker website](https://docs.docker.com/get-started/get-docker/)
-
 ### Project Setup
 
 ```bash
@@ -39,11 +32,9 @@ git clone https://github.com/LewisT543/msvc-primefinder.git
 
 cd msvc-primefinder
 
-// get redis running locally (sorry, you are on your own for this bit!)
+mvn clean install
 
-mvn clean install package
-
-docker-compose up --build
+mvn spring-boot:run
 ```
 
 ## API Endpoint
@@ -56,7 +47,7 @@ docker-compose up --build
 |----------------|--------|----------|---------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `limit`        | `long` | Yes      | N/A           | The upper limit up to which primes will be calculated.                                                                                                                                                                          |
 | `algo`         | `enum` | No       | `SMART`       | The algorithm to use for calculating primes. Options include: `NAIVE`, `SIEVE`, `SIEVE_BITSET`, `SIEVE_STREAMS`, `SEGMENTED_SIEVE`, `SEGMENTED_SIEVE_BITSET`, `SEGMENTED_SIEVE_STREAMS`, `SEGMENTED_SIEVE_CONCURRENT`, `SMART`. |
-| `useCache`     | `boolean` | No   | `false`       | Indicates whether to use cached prime results.                                                                                                                                                                                  |
+| `useCache`     | `boolean` | No   | `false`       | Indicates whether to use cache for prime results.                                                                                                                                                                               |
 | `withResult`   | `boolean` | No   | `true`        | Indicates whether to include the result in the response. (Huge responses may crash clients)                                                                                                                                     |
 
 
@@ -95,7 +86,6 @@ GET /find-primes?limit=100&algo=SIEVE
   "executionTimeMs": 5,
   "executionTimeNs": 5000000,
   "algorithmName": "SIEVE",
-  "buildCache": false,
   "useCache": false,
   "timestamp": "2024-10-27T12:00:00"
 }
@@ -103,7 +93,7 @@ GET /find-primes?limit=100&algo=SIEVE
 ### Example 2: Find Primes up to 100_000 with Caching and SMART algorithm
 **Request:**
 
-GET /find-primes?limit=100000&useCache=true&buildCache=true&algo=SMART
+GET /find-primes?limit=100000&useCache=true&algo=SMART
 
 **Response:**
 ```json
@@ -113,7 +103,6 @@ GET /find-primes?limit=100000&useCache=true&buildCache=true&algo=SMART
   "executionTimeMs": 519,
   "executionTimeNs": 519539900,
   "algorithmName": "SIEVE",
-  "buildCache": true,
   "useCache": true,
   "timestamp": "2024-10-27T13:16:13.8735739"
 }
@@ -132,13 +121,40 @@ GET /find-primes?limit=100000000&algo=SMART&withResult=false
   "executionTimeMs": 3172,
   "executionTimeNs": 3171952500,
   "algorithmName": "SEGMENTED_SIEVE_CONCURRENT",
-  "buildCache": false,
   "useCache": false,
   "timestamp": "2024-10-27T13:48:06.4711252"
 }
 ```
 
-### Example 4:  Invalid Parameter Handling
+### Example 4: Find Primes up to 100
+**Request:**
+
+GET /find-primes?limit=100&algo=SIEVE
+Headers: 
+  Accept: application/xml 
+
+**Response:**
+```xml
+<FindPrimesResponse>
+  <result>
+    <prime>2</prime>
+    <prime>3</prime>
+    <prime>5</prime>
+    <prime>7</prime>
+    ...
+    <prime>89</prime>
+    <prime>97</prime>
+  </result>
+  <numberOfPrimes>25</numberOfPrimes>
+  <executionTimeMs>0</executionTimeMs>
+  <executionTimeNs>6900</executionTimeNs>
+  <algorithmName>SIEVE</algorithmName>
+  <useCache>false</useCache>
+  <timestamp>2024-10-31T14:29:44.6279712</timestamp>
+</FindPrimesResponse>
+```
+
+### Example 5:  Invalid Parameter Handling
 **Request:**
 
 /find-primes?limit=test
@@ -153,10 +169,8 @@ GET /find-primes?limit=100000000&algo=SMART&withResult=false
 ```
 
 ## Findings
-1. No-cache Sieve is almost always the best approach. For low limits it is very fast, and for high limits
-the problem becomes memory rather than speed. Thus making caching ineffective for the exact ranges it 'could' be a good
-optimisation for. (at least for my current sqlite cache implementation). The time taken to read smaller lists of primes
-from sqlite is greater than the calculation time.
+1. Sieve is almost always the best approach. For low limits it is very fast, and for high limits
+the problem becomes memory rather than speed.
 
 
 2. For large and huge limits, the Concurrent Segmented Sieve is the best choice. On my machine, once I surpass a limit of 5_000_000
@@ -165,8 +179,12 @@ it useful above certain ranges depending on compute and memory availability.
 
 
 3. Caching/memoisation sounds like a good idea, but difficult to implement properly to see any sort of performance improvements.
-Once the limit reaches ranges where it would be advantageous to directly hit a cache, the read speed and memory requirements of
-sqlite wipe out almost all performance bonuses.
+I tested first with SQLite, but the cost of reading/writing to disk was way higher than calculating primes. I then tried with Redis,
+which was better, but still slower than just calculating the primes. Sping boot caching was also a bit too slow. The only way I could
+get any real improvements from caching was to literally use a long[] held in memory in a caching service. This introduced complexity 
+surrounding working out how big that array can actually get before we start to run out of memory. My final implementation takes into
+account available memory and allocates a safe amount of memory to be consumed by the cache - if our result exceeds this limit, the program
+will skip saving to the cache and just return the result.
 
 
 4. Java Streams API is almost always slower than a straightforwards imperative approach, despite better readability. Sometimes this
@@ -183,4 +201,4 @@ synchronized keyword without a custom implementation.
 
 | Element                                          | Missed Instructions | Cov. | Missed Branches | Cov. |
 |--------------------------------------------------|---------------------|------|-----------------|------|
-| Total                                            | 57 of 1,734         | 96%  | 11 of 139       | 92%  |
+| Total                                            | 58 of 1,830         | 96%  | 7 of 133        | 94%  |
