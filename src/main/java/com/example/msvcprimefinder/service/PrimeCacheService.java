@@ -5,9 +5,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 @Service
 public class PrimeCacheService {
@@ -33,7 +31,7 @@ public class PrimeCacheService {
     }
 
     public long[] getPrimesFromCacheToLimit(long limit) {
-        long[] primesToLimit = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        long[] primesToLimit = new long[PrimeEstimator.estimatePrimesArrayLength(limit)];
         int count = 0;
         for (long prime : cachedPrimes) {
             if (prime <= limit) {

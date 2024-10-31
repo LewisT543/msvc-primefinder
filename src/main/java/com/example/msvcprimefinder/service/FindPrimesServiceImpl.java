@@ -3,6 +3,7 @@ package com.example.msvcprimefinder.service;
 import com.example.msvcprimefinder.exception.FindPrimesArgException;
 import com.example.msvcprimefinder.model.enums.PrimeAlgorithmNames;
 import com.example.msvcprimefinder.response.FindPrimesResponse;
+import com.example.msvcprimefinder.util.PrimeEstimator;
 import com.example.msvcprimefinder.util.PrimesTimer;
 import com.example.msvcprimefinder.util.type.PrimesTimerResult;
 import org.slf4j.Logger;
@@ -11,7 +12,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.EnumSet;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.function.Supplier;
 
@@ -70,7 +70,7 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             if (saveToCacheResult.result()) {
                 primeCacheService.setCachedLimit(limit);
             } else {
-                logger.warn("Skipped caching - result size: {} (bytes), too large for cache max size: {} (bytes)", timerResult.result().length * 8, primeCacheService.getMaxSafeCacheSize());
+                logger.warn("Skipped caching - result size: {} (bytes), too large for cache max size: {} (bytes)", timerResult.result().length * 8L, primeCacheService.getMaxSafeCacheSize());
             }
             saveToCacheDurationMs = saveToCacheResult.durationMs();
             saveToCacheDurationNs = saveToCacheResult.durationNs();
@@ -127,6 +127,10 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         if (limit >= Integer.MAX_VALUE && !VALID_LARGE_LIMIT_ALGORITHMS.contains(selectedAlgorithm)) {
             logger.warn("[findPrimes]: limit > MAX_INT without Seg-Sieve algorithm");
             throw new FindPrimesArgException("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant");
+        }
+        if (PrimeEstimator.checkLimitAgainstMemory(limit)) {
+            logger.warn("Not enough memory to process limit: " + limit);
+            throw new FindPrimesArgException("Not enough memory to process limit: " + limit);
         }
     }
 }

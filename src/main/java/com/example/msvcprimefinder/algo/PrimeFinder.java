@@ -19,7 +19,7 @@ public class PrimeFinder {
     private static final Logger logger = LoggerFactory.getLogger(PrimeFinder.class);
 
     public static long[] findPrimesNaive(long limit) {
-        long[] primes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        long[] primes = new long[PrimeEstimator.estimatePrimesArrayLength(limit)];
         int count = 0;
 
         // Check each number from 2 up to limit
@@ -34,7 +34,7 @@ public class PrimeFinder {
     public static long[] findPrimesWithSieve(long limit) {
         int intLimit = (int) limit; // if limit > max_int exception has already been thrown
         boolean[] isPrime = simpleIntSieve(intLimit);
-        long[] primes = new long[PrimeEstimator.estimateNumberOfPrimes(limit) + 1];
+        long[] primes = new long[PrimeEstimator.estimatePrimesArrayLength(limit) + 1];
         int count = 0;
         for (int i = 2; i <= limit; i++) {
             if (isPrime[i]){
@@ -47,7 +47,7 @@ public class PrimeFinder {
     public static long[] findPrimesWithSieve_BitSet(long limit) {
         int intLimit = (int)limit; // if limit > max_int exception has already been thrown
         BitSet isPrime = bitSetIntSieve(intLimit);
-        long[] primes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        long[] primes = new long[PrimeEstimator.estimatePrimesArrayLength(limit)];
         int count = 0;
         for (int i = 2; i <= limit; i++) {
             if (isPrime.get(i)) {
@@ -102,7 +102,7 @@ public class PrimeFinder {
         }
 
         // List to hold all result up to the limit
-        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        long[] resultPrimes = new long[PrimeEstimator.estimatePrimesArrayLength(limit)];
         int resultCount = 0;
 
         long low = 2;
@@ -156,7 +156,7 @@ public class PrimeFinder {
         }
 
         // List to hold all result up to the limit
-        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        long[] resultPrimes = new long[PrimeEstimator.estimatePrimesArrayLength(limit)];
         int resultCount = 0;
 
         long low = 2;
@@ -206,7 +206,7 @@ public class PrimeFinder {
                 .toArray();
 
         // Use the small result to mark non-result in segments up to limit
-        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        long[] resultPrimes = new long[PrimeEstimator.estimatePrimesArrayLength(limit)];
         AtomicInteger resultCount = new AtomicInteger( 0);
 
         // Iterate over segments, starting from segmentSize
@@ -251,7 +251,7 @@ public class PrimeFinder {
         }
 
         // List to hold all result up to the limit
-        long[] resultPrimes = new long[PrimeEstimator.estimateNumberOfPrimes(limit)];
+        long[] resultPrimes = new long[PrimeEstimator.estimatePrimesArrayLength(limit)];
         AtomicInteger resultCount = new AtomicInteger(0);
 
         // Get processors and make a thread pool (try w resources)

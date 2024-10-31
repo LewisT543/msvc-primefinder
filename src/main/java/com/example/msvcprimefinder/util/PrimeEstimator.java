@@ -8,9 +8,13 @@ public class PrimeEstimator {
      * For small limits PNT is inaccurate and tends to underestimate, so we add an extra 2000
      * length for these cases to ensure we don't go out of bounds when calculating primes.
      * */
-    public static int estimateNumberOfPrimes(long limit) {
+    public static int estimatePrimesArrayLength(long limit) {
         double safeBufferAdjuster = 1.2;
         double estimatedArrLength = (int) (limit / Math.log(limit)) * safeBufferAdjuster;
         return limit < 10000 ? (int) estimatedArrLength + 2000 : (int) estimatedArrLength;
+    }
+
+    public static boolean checkLimitAgainstMemory(long limit) {
+        return PrimeEstimator.estimatePrimesArrayLength(limit) * 8L >= Runtime.getRuntime().maxMemory() * 0.3;
     }
 }

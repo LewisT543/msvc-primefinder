@@ -131,6 +131,21 @@ public class FindPrimesControllerIntegrationTest {
     }
 
     @Test
+    public void findPrimes_LimitTooBig_MemoryErr() {
+        long limit = 7_000_000_000L;
+        given()
+                .queryParam("limit", limit)
+                .when()
+                .get("/api/find-primes")
+                .then()
+                .statusCode(HttpStatus.BAD_REQUEST.value())
+                .body("message", containsString("Not enough memory to process limit: 7000000000"));
+
+        verify(primeCacheService, never()).addPrimesToCache(any(long[].class));
+    }
+
+
+    @Test
     void findPrimes_XMLResponse_NoCache_SmallLimit_Happy() {
         Response response = given()
                 .queryParam("limit", 100)
