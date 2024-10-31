@@ -21,7 +21,7 @@ public class PrimeTimerTest {
             return "Primes";
         };
         PrimesTimerResult<String> result = PrimesTimer.measureExecutionTime(functionToTest);
-        assertEquals("Primes", result.primes());
+        assertEquals("Primes", result.result());
         assertTrue(result.durationMs() >= 100);
         assertTrue(result.durationNs() >= TimeUnit.MILLISECONDS.toNanos(100));
     }
@@ -30,7 +30,7 @@ public class PrimeTimerTest {
     void measureExecutionTime_emptyFunction_returnsResultAndDuration() {
         Supplier<Integer> emptyFunction = () -> 10;
         PrimesTimerResult<Integer> result = PrimesTimer.measureExecutionTime(emptyFunction);
-        assertEquals(10, result.primes());
+        assertEquals(10, result.result());
         assertTrue(result.durationMs() >= 0);
         assertTrue(result.durationNs() >= 0);
     }

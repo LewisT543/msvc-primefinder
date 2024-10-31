@@ -42,10 +42,9 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
-    // I did not use @Validators as I wanted the flexibility to throw/catch parameter combinations
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<FindPrimesErrorResponse> handleMethodArgumentTypeMismatch(MethodArgumentTypeMismatchException ex) {
-        var type = Objects.requireNonNull(ex.getRequiredType(), "Required type should never be null here"); // Silence compiler for isEnum() check
+        var type = Objects.requireNonNull(ex.getRequiredType(), "Required type should never be null here");
         String errorMessage;
         switch (ex.getName()) {
             case "algo" -> errorMessage = "Invalid value for '" + ex.getName() + "'. Allowed values are: " + Arrays.toString(type.getEnumConstants());
@@ -58,14 +57,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<FindPrimesErrorResponse> handleAllErrors(Throwable ex) {
-        if (ex instanceof OutOfMemoryError) {
-            return new ResponseEntity<>(new FindPrimesErrorResponse(
-                    OUT_OF_MEMORY_ERROR,
-                    HttpStatus.INTERNAL_SERVER_ERROR.value()
-            ), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
         return new ResponseEntity<>(new FindPrimesErrorResponse(
-                GENERAL_EXCEPTION_ERROR_MESSAGE,
+                (ex instanceof OutOfMemoryError) ? OUT_OF_MEMORY_ERROR : GENERAL_EXCEPTION_ERROR_MESSAGE,
                 HttpStatus.INTERNAL_SERVER_ERROR.value()
         ), HttpStatus.INTERNAL_SERVER_ERROR);
     }

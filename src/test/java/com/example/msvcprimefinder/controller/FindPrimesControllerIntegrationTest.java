@@ -1,21 +1,20 @@
 package com.example.msvcprimefinder.controller;
 
-import com.example.msvcprimefinder.service.FindPrimesService;
-import com.example.msvcprimefinder.service.RedisPrimeCacheService;
+import com.example.msvcprimefinder.service.PrimeCacheService;
 import io.restassured.RestAssured;
 import io.restassured.response.Response;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.SpyBean;
 import org.springframework.boot.test.web.server.LocalServerPort;
 import org.springframework.http.HttpStatus;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import static io.restassured.RestAssured.given;
-import static org.hamcrest.Matchers.*;
+import static org.hamcrest.Matchers.containsString;
+import static org.hamcrest.Matchers.equalTo;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
@@ -26,14 +25,14 @@ public class FindPrimesControllerIntegrationTest {
     @LocalServerPort
     private int port;
 
-    @Autowired
-    private RedisPrimeCacheService redisPrimeCacheService;
+    @SpyBean
+    PrimeCacheService primeCacheService;
 
     @BeforeEach
     void setup() {
         RestAssured.port = port;
         RestAssured.enableLoggingOfRequestAndResponseIfValidationFails();
-        redisPrimeCacheService = spy(redisPrimeCacheService);
+        reset(primeCacheService);
     }
 
     private final List<Long> primesTo100 = List.of(2L, 3L, 5L, 7L,11L, 13L, 17L, 19L, 23L, 29L, 31L, 37L, 41L,
@@ -55,7 +54,7 @@ public class FindPrimesControllerIntegrationTest {
             .body("algorithmName", equalTo("SIEVE"));
 
         assertEquals(primesTo100, responsePrimes);
-        verify(redisPrimeCacheService, never()).savePrimes(anyList());
+        verify(primeCacheService, never()).addPrimesToCache(anyList());
     }
 
     @Test
@@ -75,7 +74,7 @@ public class FindPrimesControllerIntegrationTest {
             .body("algorithmName", equalTo("SIEVE"));
 
         assertEquals(primesTo100, responsePrimes);
-        assertEquals(primesTo100, redisPrimeCacheService.getPrimesUpTo(limit), "Database should contain primes upto and including limit");
+        assertEquals(primesTo100, primeCacheService.getPrimesFromCacheToLimit(limit), "Cache should contain result upto and including limit");
 
         Response response2 = given()
             .queryParam("limit", limit)
@@ -90,7 +89,7 @@ public class FindPrimesControllerIntegrationTest {
                 .body("algorithmName", equalTo("CACHE_HIT"));
 
         assertEquals(primesTo100, responsePrimes2);
-        verify(redisPrimeCacheService, times(1)).getPrimesUpTo(limit);
+        verify(primeCacheService, times(2)).getPrimesFromCacheToLimit(limit); // limit 2 here allowing for above check on line 77
     }
 
     @Test
@@ -124,7 +123,7 @@ public class FindPrimesControllerIntegrationTest {
             .statusCode(HttpStatus.BAD_REQUEST.value())
             .body("message", containsString("findPrimes.limit: must be greater than or equal to 2"));
 
-        verify(redisPrimeCacheService, never()).savePrimes(anyList());
+        verify(primeCacheService, never()).addPrimesToCache(anyList());
     }
 
     @Test
@@ -149,7 +148,7 @@ public class FindPrimesControllerIntegrationTest {
                 .contentType("application/xml")
                 .body("FindPrimesResponse.algorithmName", equalTo("SIEVE"));
 
-        verify(redisPrimeCacheService, never()).savePrimes(anyList());
+        verify(primeCacheService, never()).addPrimesToCache(anyList());
     }
 
     @Test
@@ -165,7 +164,6 @@ public class FindPrimesControllerIntegrationTest {
                 .contentType("application/xml")
                 .body("FindPrimesErrorResponse.message", containsString("findPrimes.limit: must be greater than or equal to 2"));
 
-        verify(redisPrimeCacheService, never()).savePrimes(anyList());
+        verify(primeCacheService, never()).addPrimesToCache(anyList());
     }
-
 }

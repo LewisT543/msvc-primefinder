@@ -9,7 +9,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -33,26 +32,23 @@ public class FindPrimesServiceImpl implements FindPrimesService {
     private static final int SMART_LIMIT_SWITCH = 5_000_000;
     private static final List<Long> EMPTY_PRIMES = List.of();
 
-    private final RedisPrimeCacheService redisPrimeCacheService;
     private final ExecutorServiceProvider executorServiceProvider;
-
-    private long cachedPrimesLimit = 0;
+    private final PrimeCacheService primeCacheService;
 
     @Autowired
-    public FindPrimesServiceImpl(RedisPrimeCacheService redisPrimeCacheService, ExecutorServiceProvider executorServiceProvider) {
-        this.redisPrimeCacheService = redisPrimeCacheService;
+    public FindPrimesServiceImpl(ExecutorServiceProvider executorServiceProvider, PrimeCacheService primeCacheService) {
         this.executorServiceProvider = executorServiceProvider;
+        this.primeCacheService = primeCacheService;
     }
 
-    @Transactional
     public FindPrimesResponse findPrimes(long limit, PrimeAlgorithmNames selectedAlgorithm, boolean useCache, boolean withResult) {
         throwInputErrors(limit, selectedAlgorithm, useCache);
         long saveToCacheDurationMs = 0;
         long saveToCacheDurationNs = 0;
 
         if (useCache) {
-            logger.warn("Cached Primes Limit: {}", cachedPrimesLimit);
-            if (limit <= cachedPrimesLimit) {
+            logger.warn("Cached primes max limit: {}", primeCacheService.getCachedLimit());
+            if (primeCacheService.isCached(limit)) {
                 return handleCacheHit(limit, withResult);
             }
         }
@@ -64,35 +60,39 @@ public class FindPrimesServiceImpl implements FindPrimesService {
                     : PrimeAlgorithmNames.SEGMENTED_SIEVE_CONCURRENT;
         }
 
-        // Generate primes
-        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(getPrimesFn(limit, selectedAlgorithm));
-        logger.info("Execution Time for {}: {} ms", selectedAlgorithm.name(), result.durationMs());
+        // Generate result
+        PrimesTimerResult<List<Long>> timerResult = PrimesTimer.measureExecutionTime(getPrimesFn(limit, selectedAlgorithm));
+        logExecutionTime(selectedAlgorithm.name(), timerResult.durationMs());
 
         if (useCache) {
-            // Drop cache + save primes
-            PrimesTimerResult<Integer> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> redisPrimeCacheService.savePrimes(result.primes()));
+            // Drop cache + save result
+            PrimesTimerResult<Boolean> saveToCacheResult = PrimesTimer.measureExecutionTime(() -> primeCacheService.addPrimesToCache(timerResult.result()));
+            if (saveToCacheResult.result()) {
+                primeCacheService.setCachedLimit(limit);
+            } else {
+                logger.warn("Skipped caching - result size: {} (bytes), too large for cache max size: {} (bytes)", timerResult.result().size() * 8, primeCacheService.getMaxSafeCacheSize());
+            }
             saveToCacheDurationMs = saveToCacheResult.durationMs();
             saveToCacheDurationNs = saveToCacheResult.durationNs();
-            cachedPrimesLimit = limit;
-            logger.info("Execution Time for {}: {} ms", CACHE_SAVE_MESSAGE, saveToCacheResult.durationMs());
+            logExecutionTime(CACHE_SAVE_MESSAGE, saveToCacheResult.durationMs());
         }
 
         return new FindPrimesResponse(
-                withResult ? result.primes() : EMPTY_PRIMES,
-                result.primes().size(),
-                result.durationMs() + saveToCacheDurationMs,
-                result.durationNs() + saveToCacheDurationNs,
+                withResult ? timerResult.result() : EMPTY_PRIMES,
+                timerResult.result().size(),
+                timerResult.durationMs() + saveToCacheDurationMs,
+                timerResult.durationNs() + saveToCacheDurationNs,
                 selectedAlgorithm.name(),
                 useCache
         );
     }
 
     private FindPrimesResponse handleCacheHit(long limit, boolean withResult) {
-        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() -> redisPrimeCacheService.getPrimesUpTo(limit));
-        logger.info("Execution Time for {}: {} ms", CACHE_HIT_MESSAGE, result.durationMs());
+        PrimesTimerResult<List<Long>> result = PrimesTimer.measureExecutionTime(() -> primeCacheService.getPrimesFromCacheToLimit(limit));
+        logExecutionTime(CACHE_HIT_MESSAGE, result.durationMs());
         return new FindPrimesResponse(
-                withResult ? result.primes() : EMPTY_PRIMES,
-                result.primes().size(),
+                withResult ? result.result() : EMPTY_PRIMES,
+                result.result().size(),
                 result.durationMs(),
                 result.durationNs(),
                 CACHE_HIT_MESSAGE,
@@ -114,6 +114,10 @@ public class FindPrimesServiceImpl implements FindPrimesService {
         };
     }
 
+    private void logExecutionTime(String algorithmName, long timeInMs) {
+        logger.info("Execution Time for {}: {} ms", algorithmName, timeInMs);
+    }
+
     private Supplier<List<Long>> handleConcurrentSieve(long limit) {
         ExecutorService executor = executorServiceProvider.getExecutor();
         return () -> findPrimesWithSegmentedSieve_Concurrent(limit, executorServiceProvider.getDynamicSegmentSize(limit), executor);
@@ -124,10 +128,10 @@ public class FindPrimesServiceImpl implements FindPrimesService {
             logger.warn("[findPrimes]: limit > MAX_INT without Seg-Sieve algorithm");
             throw new FindPrimesArgException("Limit is greater than MAX_INT, please use a Segmented-Sieve algorithm variant");
         }
-        if (useCache && limit > 100_000_000) {
-            logger.warn("[findPrimes]: limit > 100_000_000 with buildCache enabled");
-            throw new FindPrimesArgException("Limit too large for caching! Please disable caching (&useCache=false) or use a smaller limit");
-        }
+//        if (useCache && limit > 1_000_000_000) {
+//            logger.warn("[findPrimes]: limit > 1_000_000_000 with buildCache enabled");
+//            throw new FindPrimesArgException("Limit too large for caching! Please disable caching (&useCache=false) or use a smaller limit");
+//        }
     }
 }
 

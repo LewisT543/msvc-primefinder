@@ -17,10 +17,10 @@ import org.springframework.web.bind.annotation.RequestParam;
 @Validated
 public interface FindPrimesAPI {
     @Operation(
-            summary = "Find primes up to and including a specified limit",
+            summary = "Find result up to and including a specified limit",
             description = "Returns a result containing a list of prime numbers up to the given limit, the specified algorithm and time taken.",
             responses = {
-                    @ApiResponse(responseCode = "200", description = "Successfully retrieved primes",
+                    @ApiResponse(responseCode = "200", description = "Successfully retrieved result",
                             content = {
                                 @Content(mediaType = "application/json", schema = @Schema(implementation = FindPrimesResponse.class)),
                                 @Content(mediaType = "application/xml", schema = @Schema(implementation = FindPrimesResponse.class))
@@ -32,16 +32,16 @@ public interface FindPrimesAPI {
     )
     @GetMapping("/api/find-primes")
     ResponseEntity<FindPrimesResponse> findPrimes(
-            @Parameter(description = "Upper limit (inclusive) for finding primes", required = true, in = ParameterIn.QUERY)
+            @Parameter(description = "Upper limit (inclusive) for finding result", required = true, in = ParameterIn.QUERY)
             @RequestParam @Min(2) long limit,
 
-            @Parameter(description = "Algorithm to use for finding primes", required = false, in = ParameterIn.QUERY)
+            @Parameter(description = "Algorithm to use for finding result", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "SMART") PrimeAlgorithmNames algo,
 
             @Parameter(description = "Use redis cache if available", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "false") boolean useCache,
 
-            @Parameter(description = "Return a dummy list of primes instead of the real result", required = false, in = ParameterIn.QUERY)
+            @Parameter(description = "Return a dummy list of result instead of the real result", required = false, in = ParameterIn.QUERY)
             @RequestParam(required = false, defaultValue = "true") boolean withResult
     );
 }

@@ -25,7 +25,7 @@ public class FindPrimesServiceImplTest {
     private ExecutorServiceProvider executorServiceProvider;
 
     @Autowired
-    private RedisPrimeCacheService redisPrimeCacheService;
+    private PrimeCacheService primeCacheService;
 
 
     private final long SMART_MAX_SWITCH = 5_000_000;
@@ -60,10 +60,10 @@ public class FindPrimesServiceImplTest {
     }
 
     @Test
-    public void testFindPrimes_LimitGt100MAndBuildCache() {
-        long limit = 100_000_000 + 1;
+    public void testFindPrimes_LimitGt1BillionAndUseCache() {
+        long limit = 1_000_000_000 + 1;
         Exception exception = assertThrows(FindPrimesArgException.class, () -> {
-            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, false, true);
+            findPrimesService.findPrimes(limit, PrimeAlgorithmNames.SIEVE, true, true);
         });
         assertEquals("Limit too large for caching! Please disable caching (&useCache=false) or use a smaller limit", exception.getMessage());
     }
@@ -96,7 +96,7 @@ public class FindPrimesServiceImplTest {
             FindPrimesResponse response = findPrimesService.findPrimes(limit, algorithm, false, true);
             PrimeAlgorithmNames expectedAlgorithm = algorithm == PrimeAlgorithmNames.SMART ? PrimeAlgorithmNames.SIEVE : algorithm;
             assertEquals(expectedAlgorithm.name(), response.algorithmName() , "Expected algorithm: " + expectedAlgorithm);
-            assertEquals(mockPrimes.size(), response.numberOfPrimes(), "Count of primes should match for " + algorithm.name());
+            assertEquals(mockPrimes.size(), response.numberOfPrimes(), "Count of result should match for " + algorithm.name());
             assertEquals(mockPrimes, response.result().stream().sorted().toList(), "Primes returned should match for " + algorithm.name());
             assertFalse(response.useCache(), "useCache should be false for " + algorithm.name());
         });
@@ -110,7 +110,7 @@ public class FindPrimesServiceImplTest {
             FindPrimesResponse response = findPrimesService.findPrimes(limit, algorithm, false, true);
             PrimeAlgorithmNames expectedAlgorithm = algorithm == PrimeAlgorithmNames.SMART ? PrimeAlgorithmNames.SIEVE : algorithm;
             assertEquals(expectedAlgorithm.name(), response.algorithmName() , "Expected algorithm: " + expectedAlgorithm);
-            assertEquals(primesInAMillion, response.numberOfPrimes(), "Count of primes should match for " + algorithm.name());
+            assertEquals(primesInAMillion, response.numberOfPrimes(), "Count of result should match for " + algorithm.name());
             assertFalse(response.useCache(), "useCache should be false for " + algorithm.name());
         });
     }

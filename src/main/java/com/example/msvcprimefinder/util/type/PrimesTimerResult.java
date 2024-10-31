@@ -1,3 +1,3 @@
 package com.example.msvcprimefinder.util.type;
 
-public record PrimesTimerResult<T>(T primes, long durationMs, long durationNs) {}
+public record PrimesTimerResult<T>(T result, long durationMs, long durationNs) {}
