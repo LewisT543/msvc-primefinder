@@ -55,12 +55,16 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(new FindPrimesErrorResponse(errorMessage, HttpStatus.BAD_REQUEST.value()), HttpStatus.BAD_REQUEST);
     }
 
+    @ExceptionHandler(OutOfMemoryError.class)
+    public ResponseEntity<FindPrimesErrorResponse> handleOutOfMemoryError(OutOfMemoryError ex) {
+        logger.error(OUT_OF_MEMORY_ERROR);
+        return new ResponseEntity<>(new FindPrimesErrorResponse(OUT_OF_MEMORY_ERROR, HttpStatus.INTERNAL_SERVER_ERROR.value()), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
     @ExceptionHandler(Throwable.class)
     public ResponseEntity<FindPrimesErrorResponse> handleAllErrors(Throwable ex) {
-        return new ResponseEntity<>(new FindPrimesErrorResponse(
-                (ex instanceof OutOfMemoryError) ? OUT_OF_MEMORY_ERROR : GENERAL_EXCEPTION_ERROR_MESSAGE,
-                HttpStatus.INTERNAL_SERVER_ERROR.value()
-        ), HttpStatus.INTERNAL_SERVER_ERROR);
+        logger.error(GENERAL_EXCEPTION_ERROR_MESSAGE);
+        return new ResponseEntity<>(new FindPrimesErrorResponse(GENERAL_EXCEPTION_ERROR_MESSAGE, HttpStatus.INTERNAL_SERVER_ERROR.value()), HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
     @ExceptionHandler(Exception.class)

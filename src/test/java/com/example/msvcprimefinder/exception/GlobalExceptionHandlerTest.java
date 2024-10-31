@@ -83,15 +83,15 @@ public class GlobalExceptionHandlerTest {
 
     @Test
     public void handleThrowable_OOM() {
-        Throwable exception = new OutOfMemoryError("Memory limit exceeded");
-        ResponseEntity<FindPrimesErrorResponse> response = globalExceptionHandler.handleAllErrors(exception);
+        OutOfMemoryError exception = new OutOfMemoryError("Memory limit exceeded");
+        ResponseEntity<FindPrimesErrorResponse> response = globalExceptionHandler.handleOutOfMemoryError(exception);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("Out of memory. Please try a smaller limit.", response.getBody().message());
     }
 
     @Test
     public void handleThrowable_Other() {
-        Throwable exception = new StackOverflowError("Stack overflow");
+        StackOverflowError exception = new StackOverflowError("Stack overflow");
         ResponseEntity<FindPrimesErrorResponse> response = globalExceptionHandler.handleAllErrors(exception);
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, response.getStatusCode());
         assertEquals("An unexpected Error has occurred", response.getBody().message());
