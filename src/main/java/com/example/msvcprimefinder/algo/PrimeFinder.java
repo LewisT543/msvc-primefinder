@@ -8,6 +8,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.BitSet;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Future;
@@ -228,7 +229,7 @@ public class PrimeFinder {
         long low = segmentSize;
         long high;
 
-        List<Future<Void>> futures = new ArrayList<>();
+        List<CompletableFuture<Void>> futures = new ArrayList<>();
 
         // Process each segment and mark non-result
         while (low <= limit) {
@@ -244,7 +245,7 @@ public class PrimeFinder {
             final long segmentHigh = high;
 
             // Build threads and add them to futures
-            futures.add(executor.submit(() -> {
+            CompletableFuture<Void> future = CompletableFuture.runAsync(() -> {
                 // Use the result from the simple sieve to mark multiples in the current segment
                 for (long prime : primes) {
                     long start = Math.max(prime * prime, (segmentLow + prime - 1) / prime * prime);
@@ -260,22 +261,25 @@ public class PrimeFinder {
                         if (mark[i]) resultPrimes.add(segmentLow + i);
                     }
                 }
+            }, executor).exceptionally(ex -> {
+                logger.error("[Concurrent Segmented Sieve]: Error in segment [{}, {}]", segmentLow, segmentHigh);
                 return null;
-            }));
+            });
 
+            futures.add(future);
             // Slide up bv segmentSize to next segment
             low += segmentSize;
         }
 
         logger.info("[Concurrent Sieve] Configured active threads: " + Thread.activeCount());
 
-        for (Future<Void> future : futures) {
-            try{
-                future.get();
-            } catch (ExecutionException | InterruptedException e) {
-                throw new ConcurrentSieveException(e.getMessage(), e.getCause());
-            }
+        CompletableFuture<Void> allFutures = CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]));
+        try {
+            allFutures.join();
+        } catch (Exception e) {
+            throw new ConcurrentSieveException(e.getMessage(), e.getCause());
         }
+
         return resultPrimes;
     }
 
