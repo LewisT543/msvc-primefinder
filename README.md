@@ -12,7 +12,7 @@ This application provides an API to calculate prime numbers up to a specified li
 
 - Find prime numbers up to a specified limit.
 - Support for multiple algorithms for calculating primes.
-- Caching results in an in-memory store (Redis) for improved performance.
+- Caching results in an in-memory cache for improved performance.
 - Handles invalid input parameters gracefully with custom error responses.
 
 ## Live Deployment:
