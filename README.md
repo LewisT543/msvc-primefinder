@@ -25,7 +25,7 @@ https://msvc-primefinder-c87375e1eff8.herokuapp.com/api/find-primes?useCache=tru
 
 Please Note: This level of Heroku deployment (free tier) - only has a limited amount of memory (~500MB) so
 calculating huge primes using this service is not possible currently. From my testing the limit is about
-180 million before it start throwing out of memory errors. 
+180 million before it starts throwing out of memory errors. 
 
 Possible improvement here could be introducing even more dynamic segment sizing, to allow the segment sizer to
 create a greater number of smaller segments to reduce memory usage at the cost of calculation speed.
